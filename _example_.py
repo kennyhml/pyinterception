@@ -1,8 +1,9 @@
 from interception import  *
+from consts import *
 
 if __name__ == "__main__":
     c = interception()
-    c.set_filter(interception.is_keyboard,1)
+    c.set_filter(interception.is_keyboard,interception_filter_key_state.INTERCEPTION_FILTER_KEY_UP.value)
     while True:
         device = c.wait()
         stroke = c.receive(device)

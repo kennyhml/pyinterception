@@ -1,5 +1,6 @@
 from ctypes import *
 from stroke import  *
+from consts import *
 
 MAX_DEVICES = 20
 MAX_KEYBOARD = 10
@@ -10,6 +11,7 @@ k32 = windll.LoadLibrary('kernel32')
 class interception():
     _context = []
     k32 = None
+    _c_events = (c_int * MAX_DEVICES)()
 
     def __init__(self):
         try:
@@ -19,17 +21,15 @@ class interception():
                                  k32.CreateEventA(0, 1, 0, 0),
                                  interception.is_keyboard(i))
                 self._context.append(_device)
+                self._c_events[i] = _device.event
+
         except Exception as e:
             self._destroy_context()
             raise e
     
     def wait(self,milliseconds =-1):
-        c_events = (c_int * MAX_DEVICES)()
 
-        for i in range(MAX_DEVICES):
-            c_events[i] = self._context[i].event
-
-        result = k32.WaitForMultipleObjects(MAX_DEVICES,c_events,0,milliseconds)
+        result = k32.WaitForMultipleObjects(MAX_DEVICES,self._c_events,0,milliseconds)
         if result == -1 or result  == 0x102:
             return 0
         else:
@@ -38,7 +38,7 @@ class interception():
     def set_filter(self,predicate,filter):
         for i in range(MAX_DEVICES):
             if predicate(i):
-                self._context[i].set_filter(filter)
+                result = self._context[i].set_filter(filter)
 
     def get_HWID(self,device:int):
         if not interception.is_invalid(device):
@@ -58,15 +58,15 @@ class interception():
     
     @staticmethod
     def is_keyboard(device):
-        return  device > 0 and device <= MAX_KEYBOARD
+        return  device+1 > 0 and device+1 <= MAX_KEYBOARD
     
     @staticmethod
     def is_mouse(device):
-        return device > MAX_KEYBOARD and device <= MAX_KEYBOARD + MAX_MOUSE
+        return device+1 > MAX_KEYBOARD and device+1 <= MAX_KEYBOARD + MAX_MOUSE
     
     @staticmethod
     def is_invalid(device):
-        return device < 0 or device > (MAX_KEYBOARD + MAX_MOUSE)
+        return device+1 <= 0 or device+1 > (MAX_KEYBOARD + MAX_MOUSE)
 
     def _destroy_context(self):
         for device in self._context:
@@ -75,10 +75,12 @@ class interception():
 class device_io_result:
     result = 0
     data = None
+    data_bytes = None
     def  __init__(self,result,data):
         self.result = result
         if data!=None:
             self.data = list(data)
+            self.data_bytes = bytes(data)
 
 
 def device_io_call(decorated):
@@ -125,21 +127,15 @@ class device():
     @device_io_call
     def get_precedence(self):
         return  0x222008,0,self._c_int_1
-        # _buffer = (c_int * 1)(0)
-        # return self._device_io_control(0x222008,_buffer).data[0]
     
     @device_io_call
     def set_precedence(self,precedence : int):
         self._c_int_1[0] = precedence
         return  0x222004,self._c_int_1,0
-        # _buffer = (c_int * 1)(precedence)
-        # self._device_io_control(0x222004,_buffer)
 
     @device_io_call
     def get_filter(self):
         return  0x222020,0,self._c_ushort_1
-        # _buffer = (c_ushort * 1)(0)
-        # return self._device_io_control(0x222020,_buffer).data[0]
 
     @device_io_call
     def set_filter(self,filter):
@@ -151,15 +147,16 @@ class device():
         return 0x222200,0,self._c_byte_500
     
     def get_HWID(self):
-        data = self._get_HWID().data
-        return bytes(data)[:self._bytes_returned[0]]
+        data = self._get_HWID().data_bytes
+        return data[:self._bytes_returned[0]]
     
     @device_io_call
     def _receive(self):
         return 0x222100,0,self._c_recv_buffer
 
     def receive(self):
-        return self._parser.parse_raw(bytes(self._receive().data))
+        data = self._receive().data_bytes
+        return self._parser.parse_raw(data)
     
     def send(self,stroke:stroke):
         if type(stroke) == self._parser:
@@ -174,8 +171,6 @@ class device():
     def _device_set_event(self):
         self._c_int_2[0] = self.event
         return 0x222040,self._c_int_2,0
-        # _buffer = (c_int *2)(self.event)
-        # return self._device_io_control(0x222040,_buffer)
 
     def _device_io_control(self,command,inbuffer,outbuffer)->device_io_result:
         res = k32.DeviceIoControl(self.handle,command,inbuffer,
@@ -184,4 +179,4 @@ class device():
                                   len(bytes(outbuffer)) if outbuffer !=0 else 0,
                                   self._bytes_returned,0)
 
-        return device_io_result(res,list(outbuffer) if outbuffer !=0 else None) 
+        return device_io_result(res,outbuffer if outbuffer !=0 else None) 

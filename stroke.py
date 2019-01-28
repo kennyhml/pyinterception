@@ -38,16 +38,37 @@ class mouse_stroke(stroke):
     @staticmethod
     def parse_raw(data):
         unpacked= struct.unpack(mouse_stroke.fmt_raw,data)
-        return  mouse_stroke(unpacked[1],unpacked[2],unpacked[3],unpacked[5],unpacked[6],unpacked[7])
+        return  mouse_stroke(
+            unpacked[2],
+            unpacked[1],
+            unpacked[3],
+            unpacked[5],
+            unpacked[6],
+            unpacked[7])
 
     @property
     def data(self):
-        data =  struct.pack(self.fmt,self.state,self.flags,self.rolling,self.x,self.y,self.information)
+        data =  struct.pack(self.fmt,
+        self.state,
+        self.flags,
+        self.rolling,
+        self.x,
+        self.y,
+        self.information)
         return data
 
     @property
     def data_raw(self):
-        data = struct.pack(self.fmt_raw,0,self.state,self.flags,self.rolling,0,self.x,self.y,self.information)
+        data = struct.pack(self.fmt_raw,
+            0,
+            self.flags,
+            self.state,
+            self.rolling,
+            0,
+            self.x,
+            self.y,
+            self.information)
+
         return data
 
 class key_stroke(stroke):
