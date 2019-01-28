@@ -1,9 +1,13 @@
 # interception_py
 This is a port (not a [wrapper][wrp]) of [interception][c_ception] dll to python, it communicates directly with interception's driver
 
+# why not using the wrapper?
+* it's very slow and some strokes are lost
+* fast strokes made python crash (some heap allocation errors)
+
 To make it run you should install the driver from [c-interception][c_ception]
 
-#example
+# example
 ```py
 
 from interception import  *
@@ -19,7 +23,7 @@ if __name__ == "__main__":
         c.send(device,stroke)
 ```
 
-#todo
+# todo
 update enums
 
 
