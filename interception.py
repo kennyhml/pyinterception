@@ -11,7 +11,7 @@ k32 = windll.LoadLibrary('kernel32')
 class interception():
     _context = []
     k32 = None
-    _c_events = (c_int * MAX_DEVICES)()
+    _c_events = (c_void_p * MAX_DEVICES)()
 
     def __init__(self):
         try:
