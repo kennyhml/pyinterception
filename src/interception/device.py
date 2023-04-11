@@ -54,6 +54,12 @@ class Device:
         if self._device_set_event().result == 0:
             raise Exception("Can't communicate with driver")
 
+    def __str__(self) -> str:
+        return f"Device(handle={self.handle}, event={self.event}, is_keyboard: {self.is_keyboard})"
+
+    def __repr__(self) -> str:
+        return f"Device(handle={self.handle}, event={self.event}, is_keyboard: {self.is_keyboard})"
+
     def destroy(self):
         if self.handle != -1:
             k32.CloseHandle(self.handle)

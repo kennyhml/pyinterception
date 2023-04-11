@@ -72,14 +72,14 @@ class MouseStroke:
             self.information,
         )
 
+
 @dataclass
 class KeyStroke:
-
     fmt: ClassVar = "HHI"
     fmt_raw: ClassVar = "HHHHI"
 
     code: int
-    stage: int
+    state: int
     information: int
 
     @classmethod

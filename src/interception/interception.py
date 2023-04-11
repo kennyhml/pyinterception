@@ -1,7 +1,5 @@
-from ctypes import *
+from ctypes import c_void_p, windll, Array
 from typing import Final
-from consts import *
-
 
 MAX_DEVICES: Final = 20
 MAX_KEYBOARD: Final = 10
@@ -14,19 +12,19 @@ k32 = windll.LoadLibrary("kernel32")
 
 
 class Interception:
-    _context: list[Device] = []
-    _c_events: Array[c_void_p] = (c_void_p * MAX_DEVICES)()
+    def __init__(self) -> None:
+        self._context: list[Device] = []
+        self._c_events: Array[c_void_p] = (c_void_p * MAX_DEVICES)()
 
-    def __init__(self):
         try:
             self.build_handles()
         except IOError as e:
             self._destroy_context()
             raise e
-        
+
     def build_handles(self) -> None:
         """Creates handles and events for all interception devices.
-        
+
         Iterates over all interception devices and creates a `Device` object for each one.
         A `Device` object represents an interception device and includes a handle to the device,
         an event that can be used to wait for input on the device, and a flag indicating whether
@@ -59,13 +57,13 @@ class Interception:
     def wait(self, milliseconds: int = -1):
         """Waits for input on any interception device.
 
-        Calls the `WaitForMultipleObjects()` Windows API function to wait for input on any of the 
+        Calls the `WaitForMultipleObjects()` Windows API function to wait for input on any of the
         interception devices. The function will block until input is available on one of the devices
-        or until the specified timeout period (in milliseconds) has elapsed. If `milliseconds` is 
+        or until the specified timeout period (in milliseconds) has elapsed. If `milliseconds` is
         not specified or is negative, the function will block indefinitely until input is available.
 
-        If input is available on a device, the function will return the index of the device in the 
-        `_c_events` dictionary, indicating which device received input. If the timeout period 
+        If input is available on a device, the function will return the index of the device in the
+        `_c_events` dictionary, indicating which device received input. If the timeout period
         elapses before input is available, the function will return 0. If an error occurs, the function
         will raise an OSError.
 
@@ -111,8 +109,8 @@ class Interception:
     @staticmethod
     def create_device_handle(device_num: int):
         """Creates a handle to a specified device.
-        
-        Access mode for the device is `GENERIC_READ | GENERIC_WRITE`, allows the 
+
+        Access mode for the device is `GENERIC_READ | GENERIC_WRITE`, allows the
         handle to read and write to the device.
 
         Sharing mode for the device is `FILE_SHARE_READ | FILE_SHARE_WRITE`, which
