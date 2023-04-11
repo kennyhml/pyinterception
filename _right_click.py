@@ -1,3 +1,6 @@
+import time
+
+import pyautogui
 from interception import *
 from win32api import GetSystemMetrics
 
@@ -17,21 +20,34 @@ for i in range(MAX_DEVICES):
         break
 
 # no mouse we quit
-if (mouse == 0):
+if mouse == 0:
     print("No mouse found")
     exit(0)
 
+_screen_width = GetSystemMetrics(0)
+_screen_height = GetSystemMetrics(1)
 
+def to_hexadecimal(screen_size: int, i: int):
+    return int((0xFFFF / screen_size) * i)
+
+x, y = 1439,230
 # we create a new mouse stroke, initially we use set right button down, we also use absolute move,
 # and for the coordinate (x and y) we use center screen
-mstroke = mouse_stroke(interception_mouse_state.INTERCEPTION_MOUSE_RIGHT_BUTTON_DOWN.value,
-                           interception_mouse_flag.INTERCEPTION_MOUSE_MOVE_ABSOLUTE.value,
-                           0,
-                           int((0xFFFF * screen_width/2) / screen_width),
-                           int((0xFFFF * screen_height/2) / screen_height),
-                           0)
+mstroke = mouse_stroke(
+    0,
+    interception_mouse_flag.INTERCEPTION_MOUSE_MOVE_ABSOLUTE.value,
+    0,
+    to_hexadecimal(_screen_width, x),
+    to_hexadecimal(_screen_height, y),
+    0,
+)
 
-context.send(mouse,mstroke) # we send the key stroke, now the right button is down
+context.send(13, mstroke)  # we send the key stroke, now the right button is down
 
-mstroke.state = interception_mouse_state.INTERCEPTION_MOUSE_RIGHT_BUTTON_UP.value # update the stroke to release the button
-context.send(mouse,mstroke) #button right is up
+time.sleep(1)
+
+
+mstroke.state = (
+    interception_mouse_state.INTERCEPTION_MOUSE_RIGHT_BUTTON_UP.value
+)  # update the stroke to release the button
+context.send(15, mstroke)  # button right is up

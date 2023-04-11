@@ -1,0 +1,117 @@
+from ctypes import *
+from ctypes import _NamedFuncPointer
+from typing import Final
+
+from consts import *
+
+
+MAX_DEVICES: Final = 20
+MAX_KEYBOARD: Final = 10
+MAX_MOUSE: Final = 10
+
+from .device import Device
+from .strokes import Stroke
+
+k32 = windll.LoadLibrary("kernel32")
+
+
+class Interception:
+    _context: list[Device] = []
+    _c_events: Array[c_void_p] = (c_void_p * MAX_DEVICES)()
+
+    def __init__(self):
+        try:
+            self.build_handles()
+        except IOError as e:
+            self._destroy_context()
+            raise e
+        
+    def build_handles(self) -> None:
+        """Creates handles and events for all interception devices.
+        
+        Iterates over all interception devices and creates a `Device` object for each one.
+        A `Device` object represents an interception device and includes a handle to the device,
+        an event that can be used to wait for input on the device, and a flag indicating whether
+        the device is a keyboard or a mouse.
+
+        The handle is created using the `create_device_handle()` method, which calls the Windows API
+        function `CreateFileA()` with the appropriate parameters.
+
+        The event is created using the Windows API function `CreateEventA()`, which creates a
+        synchronization event that can be signaled when input is available on the device.
+
+        The `is_keyboard()` method is called to determine whether the device is a keyboard or a mouse.
+        This is used to set the `is_keyboard` flag on the Device object.
+
+        The created Device objects are added to the context list and the corresponding event
+        handle is added to the c_events dictionary.
+
+        Raises:
+            IOError: If a device handle cannot be created.
+        """
+        for device_num in range(MAX_DEVICES):
+            device = Device(
+                self.create_device_handle(device_num),
+                k32.CreateEventA(0, 1, 0, 0),
+                is_keyboard=self.is_keyboard(device_num),
+            )
+            self._context.append(device)
+            self._c_events[device_num] = device.event
+
+    def wait(self, milliseconds: int = -1):
+        result = k32.WaitForMultipleObjects(
+            MAX_DEVICES, self._c_events, 0, milliseconds
+        )
+        if result in [-1, 0x102]:
+            return 0
+        return result
+
+    def get_HWID(self, device: int):
+        if self.is_invalid(device):
+            return ""
+        try:
+            return self._context[device].get_HWID().decode("utf-16")
+        except:
+            return ""
+
+    def receive(self, device: int):
+        if not self.is_invalid(device):
+            return self._context[device].receive()
+
+    def send(self, device: int, stroke: Stroke):
+        if not self.is_invalid(device):
+            self._context[device].send(stroke)
+
+    @staticmethod
+    def is_keyboard(device):
+        return device + 1 > 0 and device + 1 <= MAX_KEYBOARD
+
+    @staticmethod
+    def is_mouse(device):
+        return device + 1 > MAX_KEYBOARD and device + 1 <= MAX_KEYBOARD + MAX_MOUSE
+
+    @staticmethod
+    def is_invalid(device):
+        return device + 1 <= 0 or device + 1 > (MAX_KEYBOARD + MAX_MOUSE)
+
+    @staticmethod
+    def create_device_handle(device_num: int) -> _NamedFuncPointer:
+        """Creates a handle to a specified device.
+        
+        Access mode for the device is `GENERIC_READ | GENERIC_WRITE`, allows the 
+        handle to read and write to the device.
+
+        Sharing mode for the device is `FILE_SHARE_READ | FILE_SHARE_WRITE`, which
+        allows other processes to read from and write to the device while it is open.
+
+        Creation disposition for the device is `OPEN_EXISTING`, indicating that the device
+        should be opened if it already exists.
+
+        Flags and attributes for the device are not used in this case.
+        """
+        device_name = f"\\\\.\\interception{device_num:02d}".encode()
+        return k32.CreateFileA(device_name, 0x80000000, 0, 0, 3, 0, 0)
+
+    def _destroy_context(self):
+        for device in self._context:
+            device.destroy()

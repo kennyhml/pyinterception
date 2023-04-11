@@ -113,6 +113,8 @@ def math_track(context:interception, mouse : int,
                 partitioning):
     delta = t2 - t1
     position = curve(t1)
+    print(center.x, center.y)
+    
     mstroke = mouse_stroke(interception_mouse_state.INTERCEPTION_MOUSE_LEFT_BUTTON_UP.value,
                            interception_mouse_flag.INTERCEPTION_MOUSE_MOVE_ABSOLUTE.value,
                            0,

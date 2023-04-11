@@ -8,8 +8,8 @@ MAX_MOUSE  = 10
 
 k32 = windll.LoadLibrary('kernel32')
 
-class interception():
-    _context = []
+class interception:
+    _context: list = []
     k32 = None
     _c_events = (c_void_p * MAX_DEVICES)()
 
