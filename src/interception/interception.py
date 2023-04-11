@@ -1,4 +1,4 @@
-from ctypes import c_void_p, windll, Array
+from ctypes import Array, c_void_p, windll
 from typing import Final
 
 MAX_DEVICES: Final = 20
@@ -93,6 +93,11 @@ class Interception:
     def send(self, device: int, stroke: Stroke):
         if not self.is_invalid(device):
             self._context[device].send(stroke)
+            
+    def set_filter(self,predicate,filter):
+        for i in range(MAX_DEVICES):
+            if predicate(i):
+                result = self._context[i].set_filter(filter)
 
     @staticmethod
     def is_keyboard(device):
