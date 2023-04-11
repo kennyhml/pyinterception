@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyintercept"
+version = "0.0.0"
+authors = [
+  { name="Kenny Hommel", email="kennyhommel36@gmail.com" },
+]
+description = "Pyintercept"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/kennyhml/pyintercept"
+"Bug Tracker" = "https://github.com/kennyhml/pyintercept/issues"

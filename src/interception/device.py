@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from ctypes import c_byte, c_int, c_ushort, memmove, windll
 from dataclasses import dataclass, field
 from typing import Any, Type
