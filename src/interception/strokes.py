@@ -1,8 +1,12 @@
 import struct
-from typing import Protocol
+from typing import Protocol, ClassVar
+from dataclasses import dataclass
 
 
+@dataclass
 class Stroke(Protocol):
+    fmt: ClassVar
+    fmt_raw: ClassVar
 
     @classmethod
     def parse(cls, self):
@@ -21,17 +25,17 @@ class Stroke(Protocol):
         ...
 
 
+@dataclass
 class MouseStroke:
-    fmt = "HHhiiI"
-    fmt_raw = "HHHHIiiI"
+    fmt: ClassVar = "HHhiiI"
+    fmt_raw: ClassVar = "HHHHIiiI"
 
-    def __init__(self, state, flags, rolling, x, y, information):
-        self.state = state
-        self.flags = flags
-        self.rolling = rolling
-        self.x = x
-        self.y = y
-        self.information = information
+    state: int
+    flags: int
+    rolling: int
+    x: int
+    y: int
+    information: int
 
     @classmethod
     def parse(cls, data):
@@ -68,15 +72,15 @@ class MouseStroke:
             self.information,
         )
 
-
+@dataclass
 class KeyStroke:
-    fmt = "HHI"
-    fmt_raw = "HHHHI"
 
-    def __init__(self, code, state, information):
-        self.code = code
-        self.state = state
-        self.information = information
+    fmt: ClassVar = "HHI"
+    fmt_raw: ClassVar = "HHHHI"
+
+    code: int
+    stage: int
+    information: int
 
     @classmethod
     def parse(cls, data):

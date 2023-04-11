@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ctypes import c_byte, c_int, c_ushort, memmove, windll
 from dataclasses import dataclass, field
 from typing import Any, Type
@@ -96,7 +97,9 @@ class Device:
 
     def send(self, stroke: Stroke):
         if not isinstance(stroke, self._parser):
-            raise ValueError(f"Can't parse {stroke} with {type(self._parser)}!")
+            raise ValueError(
+                f"Can't parse {stroke} with {self._parser.__name__} parser!"
+            )
         self._send(stroke)
 
     @device_io_call

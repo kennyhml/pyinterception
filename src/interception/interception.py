@@ -1,7 +1,5 @@
 from ctypes import *
-from ctypes import _NamedFuncPointer
 from typing import Final
-
 from consts import *
 
 
@@ -59,6 +57,21 @@ class Interception:
             self._c_events[device_num] = device.event
 
     def wait(self, milliseconds: int = -1):
+        """Waits for input on any interception device.
+
+        Calls the `WaitForMultipleObjects()` Windows API function to wait for input on any of the 
+        interception devices. The function will block until input is available on one of the devices
+        or until the specified timeout period (in milliseconds) has elapsed. If `milliseconds` is 
+        not specified or is negative, the function will block indefinitely until input is available.
+
+        If input is available on a device, the function will return the index of the device in the 
+        `_c_events` dictionary, indicating which device received input. If the timeout period 
+        elapses before input is available, the function will return 0. If an error occurs, the function
+        will raise an OSError.
+
+        Raises:
+            OSError: If an error occurs while waiting for input.
+        """
         result = k32.WaitForMultipleObjects(
             MAX_DEVICES, self._c_events, 0, milliseconds
         )
@@ -67,6 +80,7 @@ class Interception:
         return result
 
     def get_HWID(self, device: int):
+        """Returns the HWID of a device in the context"""
         if self.is_invalid(device):
             return ""
         try:
@@ -95,7 +109,7 @@ class Interception:
         return device + 1 <= 0 or device + 1 > (MAX_KEYBOARD + MAX_MOUSE)
 
     @staticmethod
-    def create_device_handle(device_num: int) -> _NamedFuncPointer:
+    def create_device_handle(device_num: int):
         """Creates a handle to a specified device.
         
         Access mode for the device is `GENERIC_READ | GENERIC_WRITE`, allows the 
