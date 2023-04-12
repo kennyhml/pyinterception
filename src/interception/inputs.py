@@ -14,6 +14,9 @@ interception = Interception()
 _screen_width = GetSystemMetrics(0)
 _screen_height = GetSystemMetrics(1)
 
+keyboard = 1
+mouse = 11
+
 MOUSE_BUTTON_MAPPING = {
     "left": (MouseState.MOUSE_LEFT_BUTTON_DOWN, MouseState.MOUSE_LEFT_BUTTON_UP),
     "right": (MouseState.MOUSE_RIGHT_BUTTON_DOWN, MouseState.MOUSE_RIGHT_BUTTON_UP),
@@ -21,7 +24,6 @@ MOUSE_BUTTON_MAPPING = {
     "mouse4": (MouseState.MOUSE_BUTTON_4_DOWN, MouseState.MOUSE_BUTTON_4_UP),
     "mouse5": (MouseState.MOUSE_BUTTON_5_DOWN, MouseState.MOUSE_BUTTON_5_UP),
 }
-
 
 def _normalize(x: int | tuple[int, int], y: Optional[int] = None) -> tuple[int, int]:
     if isinstance(x, tuple):
@@ -48,12 +50,38 @@ def _to_interception_point(x: int, y: int) -> tuple[int, int]:
     )
 
 
+def listen_to_keyboard() -> int:
+    interception.set_filter(interception.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
+
+    print("Waiting for a keyboard keypres...")
+    device = interception.wait()
+    stroke = interception.receive(device)
+
+    print(f"Received stroke {stroke} on keyboard device {device}")
+    interception.send(device, stroke)
+    return device
+
+
+def listen_to_mouse() -> int:
+    interception.set_filter(
+        interception.is_mouse, FilterMouseState.FILTER_MOUSE_LEFT_BUTTON_DOWN
+    )
+
+    print("Waiting for a mouse left click...")
+    device = interception.wait()
+    stroke = interception.receive(device)
+
+    print(f"Received stroke {stroke} on mouse device {device}")
+    interception.send(device, stroke)
+    return device
+
+
 def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     x, y = _normalize(x, y)
     x, y = _to_interception_point(x, y)
 
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, x, y, 0)
-    interception.send(14, stroke)
+    interception.send(mouse, stroke)
 
 
 def move_relative(x: int = 0, y: int = 0) -> None:
@@ -68,7 +96,7 @@ def click(
     button: Literal["left", "right", "middle", "mouse4", "mouse5"] = "left",
     clicks: int = 1,
     interval: int | float = 0.1,
-    delay: int | float = 0.1,
+    delay: int | float = 0.3,
 ) -> None:
     if x is not None:
         move_to(x, y)
@@ -110,13 +138,14 @@ def write(term: str, interval: int | float = 0.05) -> None:
 
 def key_down(key: str) -> None:
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_DOWN, 0)
-    interception.send(1, stroke)
+    print(keyboard)
+    interception.send(keyboard, stroke)
     time.sleep(0.025)
 
 
 def key_up(key: str) -> None:
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_UP, 0)
-    interception.send(1, stroke)
+    interception.send(keyboard, stroke)
     time.sleep(0.025)
 
 
@@ -124,16 +153,16 @@ def mouse_down(button: Literal["left", "right", "middle", "mouse4", "mouse5"]) -
     down, _ = MOUSE_BUTTON_MAPPING[button]
 
     stroke = MouseStroke(down, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
-    interception.send(14, stroke)
-    time.sleep(0.025)
+    interception.send(mouse, stroke)
+    time.sleep(0.03)
 
 
 def mouse_up(button: Literal["left", "right", "middle", "mouse4", "mouse5"]) -> None:
     _, up = MOUSE_BUTTON_MAPPING[button]
 
     stroke = MouseStroke(up, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
-    interception.send(14, stroke)
-    time.sleep(0.025)
+    interception.send(mouse, stroke)
+    time.sleep(0.03)
 
 
 @contextmanager
