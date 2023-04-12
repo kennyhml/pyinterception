@@ -1,12 +1,12 @@
 from ctypes import Array, c_void_p, windll
 from typing import Final
 
+from .device import Device
+from .strokes import Stroke
+
 MAX_DEVICES: Final = 20
 MAX_KEYBOARD: Final = 10
 MAX_MOUSE: Final = 10
-
-from .device import Device
-from .strokes import Stroke
 
 k32 = windll.LoadLibrary("kernel32")
 
