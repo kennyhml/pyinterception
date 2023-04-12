@@ -2,7 +2,7 @@ import time
 from contextlib import contextmanager
 from typing import Literal, Optional
 
-from win32api import GetSystemMetrics  # type:ignore[import]
+from win32api import GetCursorPos, GetSystemMetrics  # type:ignore[import]
 
 from ._consts import *
 from ._keycodes import KEYBOARD_MAPPING
@@ -56,6 +56,12 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     interception.send(14, stroke)
 
 
+def move_relative(x: int = 0, y: int = 0) -> None:
+    curr = GetCursorPos()
+
+    move_to(curr[0] + x, curr[1] + y)
+
+
 def click(
     x: Optional[int | tuple[int, int]] = None,
     y: Optional[int] = None,
@@ -75,6 +81,14 @@ def click(
 
         if clicks > 1:
             time.sleep(interval)
+
+
+def left_click(clicks: int = 1, interval: int | float = 0.1) -> None:
+    click(button="left", clicks=clicks, interval=interval)
+
+
+def right_click(clicks: int = 1, interval: int | float = 0.1) -> None:
+    click(button="right", clicks=clicks, interval=interval)
 
 
 def press(key: str, presses: int = 1, interval: int | float = 0.1) -> None:

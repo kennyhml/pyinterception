@@ -44,7 +44,7 @@ class MouseStroke:
     @classmethod
     def parse_raw(cls, data):
         unpacked = struct.unpack(cls.fmt_raw, data)
-        return cls(**(unpacked[i] for i in (2, 1, 3, 5, 6, 7)))
+        return cls(*(unpacked[i] for i in (2, 1, 3, 5, 6, 7)))
 
     @property
     def data(self) -> bytes:
