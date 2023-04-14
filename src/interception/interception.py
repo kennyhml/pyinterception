@@ -18,7 +18,7 @@ class Interception:
 
         try:
             self.build_handles()
-        except IOError as e:
+        except Exception as e:
             self._destroy_context()
             raise e
 

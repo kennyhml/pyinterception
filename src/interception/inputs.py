@@ -11,8 +11,11 @@ from ._keycodes import KEYBOARD_MAPPING
 from .interception import Interception
 from .strokes import KeyStroke, MouseStroke
 
-interception = Interception()
-
+try:
+    interception = Interception()
+except IOError:
+    print("Failed to initialize Interception.")
+    
 _screen_width = GetSystemMetrics(0)
 _screen_height = GetSystemMetrics(1)
 
