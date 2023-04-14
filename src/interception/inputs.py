@@ -25,6 +25,7 @@ MOUSE_BUTTON_MAPPING = {
     "mouse5": (MouseState.MOUSE_BUTTON_5_DOWN, MouseState.MOUSE_BUTTON_5_UP),
 }
 
+
 def _normalize(x: int | tuple[int, int], y: Optional[int] = None) -> tuple[int, int]:
     if isinstance(x, tuple):
         if len(x) == 2:
@@ -51,29 +52,44 @@ def _to_interception_point(x: int, y: int) -> tuple[int, int]:
 
 
 def listen_to_keyboard() -> int:
-    interception.set_filter(interception.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
+    context = Interception()
+    context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
 
-    print("Waiting for a keyboard keypres...")
-    device = interception.wait()
-    stroke = interception.receive(device)
+    print("Waiting for a keyboard keypress...")
 
-    print(f"Received stroke {stroke} on keyboard device {device}")
-    interception.send(device, stroke)
-    return device
+    while True:
+        device = context.wait()
+        stroke = context.receive(device)
+
+        if stroke.code == 0x01:
+            print("ESC pressed, exited.")
+            context._destroy_context()
+            return device
+
+        print(f"Received stroke {stroke} on keyboard device {device}")
+        context.send(device, stroke)
 
 
 def listen_to_mouse() -> int:
-    interception.set_filter(
-        interception.is_mouse, FilterMouseState.FILTER_MOUSE_LEFT_BUTTON_DOWN
-    )
+    context = Interception()
+    context.set_filter(context.is_mouse, FilterMouseState.FILTER_MOUSE_LEFT_BUTTON_DOWN)
+    context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
 
-    print("Waiting for a mouse left click...")
-    device = interception.wait()
-    stroke = interception.receive(device)
+    print("Intercepting mouse left clicks, press ESC to quit.")
 
-    print(f"Received stroke {stroke} on mouse device {device}")
-    interception.send(device, stroke)
-    return device
+    while True:
+        device = context.wait()
+        stroke = context.receive(device)
+
+        if context.is_keyboard(device) and stroke.code == 0x01:
+            print("ESC pressed, exited.")
+            context._destroy_context()
+            return device
+
+        elif not context.is_keyboard(device):
+            print(f"Received stroke {stroke} on mouse device {device}")
+
+        context.send(device, stroke)
 
 
 def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
@@ -138,7 +154,6 @@ def write(term: str, interval: int | float = 0.05) -> None:
 
 def key_down(key: str) -> None:
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_DOWN, 0)
-    print(keyboard)
     interception.send(keyboard, stroke)
     time.sleep(0.025)
 
