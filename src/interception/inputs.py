@@ -1,8 +1,10 @@
+import ctypes
 import time
 from contextlib import contextmanager
+from ctypes import wintypes
 from typing import Literal, Optional
 
-from win32api import GetCursorPos, GetSystemMetrics  # type:ignore[import]
+from win32api import GetSystemMetrics  # type:ignore[import]
 
 from ._consts import *
 from ._keycodes import KEYBOARD_MAPPING
@@ -51,12 +53,17 @@ def _to_interception_point(x: int, y: int) -> tuple[int, int]:
     )
 
 
+def _get_cursor_pos() -> tuple[int, int]:
+    cursor = wintypes.POINT()
+    ctypes.windll.user32.GetCursorPos(ctypes.byref(cursor))
+    return (int(cursor.x), int(cursor.y))
+
+
 def listen_to_keyboard() -> int:
     context = Interception()
     context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
 
     print("Waiting for a keyboard keypress...")
-
     while True:
         device = context.wait()
         stroke = context.receive(device)
@@ -76,7 +83,6 @@ def listen_to_mouse() -> int:
     context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
 
     print("Intercepting mouse left clicks, press ESC to quit.")
-
     while True:
         device = context.wait()
         stroke = context.receive(device)
@@ -101,9 +107,12 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
 
 
 def move_relative(x: int = 0, y: int = 0) -> None:
-    curr = GetCursorPos()
-
+    curr = _get_cursor_pos()
     move_to(curr[0] + x, curr[1] + y)
+
+
+def position() -> tuple[int, int]:
+    return _get_cursor_pos()
 
 
 def click(
