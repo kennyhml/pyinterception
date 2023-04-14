@@ -13,7 +13,7 @@ from .strokes import KeyStroke, MouseStroke
 
 try:
     interception = Interception()
-except IOError:
+except Exception:
     print("Failed to initialize Interception.")
     
 _screen_width = GetSystemMetrics(0)
