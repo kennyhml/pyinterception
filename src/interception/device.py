@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ctypes import c_byte, c_int, c_ushort, memmove, windll
+from ctypes import c_byte, c_int, c_ubyte, c_ushort, memmove, windll
 from dataclasses import dataclass, field
 from typing import Any, Type
 
@@ -21,11 +21,12 @@ def device_io_call(decorated):
 class DeviceIOResult:
     result: int
     data: Any
-    data_bytes: bytes = field(init=False)
+    data_bytes: bytes = field(init=False, repr=False)
 
     def __post_init__(self):
         if self.data is not None:
             self.data = list(self.data)
+            print(self.data)
             self.data_bytes = bytes(self.data)
 
 
@@ -40,10 +41,10 @@ class Device:
         self.is_keyboard = is_keyboard
         self._parser: Type[KeyStroke] | Type[MouseStroke]
         if is_keyboard:
-            self._c_recv_buffer = (c_byte * 12)()
+            self._c_recv_buffer = (c_ubyte * 12)()
             self._parser = KeyStroke
         else:
-            self._c_recv_buffer = (c_byte * 24)()
+            self._c_recv_buffer = (c_ubyte * 24)()
             self._parser = MouseStroke
 
         if handle == -1 or event == 0:

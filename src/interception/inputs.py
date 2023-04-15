@@ -67,18 +67,19 @@ def listen_to_keyboard() -> int:
     context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
 
     print("Waiting for a keyboard keypress...")
-    while True:
-        device = context.wait()
-        stroke = context.receive(device)
+    try:
+        while True:
+            device = context.wait()
+            stroke = context.receive(device)
 
-        if stroke.code == 0x01:
-            print("ESC pressed, exited.")
-            context._destroy_context()
-            return device
+            if stroke.code == 0x01:
+                print("ESC pressed, exited.")
+                return device
 
-        print(f"Received stroke {stroke} on keyboard device {device}")
-        context.send(device, stroke)
-
+            print(f"Received stroke {stroke} on keyboard device {device}")
+            context.send(device, stroke)
+    finally:
+        context._destroy_context()
 
 def listen_to_mouse() -> int:
     context = Interception()
@@ -86,20 +87,22 @@ def listen_to_mouse() -> int:
     context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
 
     print("Intercepting mouse left clicks, press ESC to quit.")
-    while True:
-        device = context.wait()
-        stroke = context.receive(device)
+    try:
+        while True:
+            device = context.wait()
+            stroke = context.receive(device)
 
-        if context.is_keyboard(device) and stroke.code == 0x01:
-            print("ESC pressed, exited.")
-            context._destroy_context()
-            return device
+            if context.is_keyboard(device) and stroke.code == 0x01:
+                print("ESC pressed, exited.")
+                return device
 
-        elif not context.is_keyboard(device):
-            print(f"Received stroke {stroke} on mouse device {device}")
+            elif not context.is_keyboard(device):
+                print(f"Received stroke {stroke} on mouse device {device}")
 
-        context.send(device, stroke)
+            context.send(device, stroke)
 
+    finally:
+        context._destroy_context()
 
 def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     x, y = _normalize(x, y)
