@@ -26,7 +26,6 @@ class DeviceIOResult:
     def __post_init__(self):
         if self.data is not None:
             self.data = list(self.data)
-            print(self.data)
             self.data_bytes = bytes(self.data)
 
 

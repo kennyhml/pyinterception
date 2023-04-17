@@ -1,5 +1,6 @@
 from enum import IntEnum
 
+
 class KeyState(IntEnum):
     KEY_DOWN = 0x00
     KEY_UP = 0x01
@@ -8,6 +9,7 @@ class KeyState(IntEnum):
     KEY_TERMSRV_SET_LED = 0x08
     KEY_TERMSRV_SHADOW = 0x10
     KEY_TERMSRV_VKPACKET = 0x20
+
 
 class FilterKeyState(IntEnum):
     FILTER_KEY_NONE = 0x0000
@@ -19,6 +21,7 @@ class FilterKeyState(IntEnum):
     FILTER_KEY_TERMSRV_SET_LED = KeyState.KEY_TERMSRV_SET_LED << 1
     FILTER_KEY_TERMSRV_SHADOW = KeyState.KEY_TERMSRV_SHADOW << 1
     FILTER_KEY_TERMSRV_VKPACKET = KeyState.KEY_TERMSRV_VKPACKET << 1
+
 
 class MouseState(IntEnum):
     MOUSE_LEFT_BUTTON_DOWN = 0x001
@@ -35,6 +38,7 @@ class MouseState(IntEnum):
 
     MOUSE_WHEEL = 0x400
     MOUSE_HWHEEL = 0x800
+
 
 class FilterMouseState(IntEnum):
     FILTER_MOUSE_NONE = 0x0000
@@ -56,6 +60,7 @@ class FilterMouseState(IntEnum):
     FILTER_MOUSE_HWHEEL = MouseState.MOUSE_HWHEEL
     FILTER_MOUSE_MOVE = 0x1000
 
+
 class MouseFlag(IntEnum):
     MOUSE_MOVE_RELATIVE = 0x000
     MOUSE_MOVE_ABSOLUTE = 0x001
@@ -63,3 +68,8 @@ class MouseFlag(IntEnum):
     MOUSE_ATTRIBUTES_CHANGED = 0x004
     MOUSE_MOVE_NOCOALESCE = 0x008
     MOUSE_TERMSRV_SRC_SHADOW = 0x100
+
+
+class MouseRolling(IntEnum):
+    MOUSE_WHEEL_UP = 0x78
+    MOUSE_WHEEL_DOWN = 0xFF88
