@@ -19,6 +19,7 @@ def device_io_call(decorated):
 
 @dataclass
 class DeviceIOResult:
+    """Represents the result of an IO operation on a `Device`."""
     result: int
     data: Any
     data_bytes: bytes = field(init=False, repr=False)
@@ -92,7 +93,7 @@ class Device:
 
     def get_HWID(self):
         data = self._get_HWID().data_bytes
-        return data[: self._bytes_returned[0]]
+        return data[:self._bytes_returned[0]]
 
     @device_io_call
     def _receive(self):
