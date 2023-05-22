@@ -21,6 +21,10 @@ try:
 except Exception:
     INTERCEPTION_INSTALLED = False
 
+
+MOUSE_BUTTON_DELAY = 0.03
+KEY_PRESS_DELAY = 0.025
+
 keyboard = 1
 mouse = 11
 
@@ -166,7 +170,7 @@ def scroll(direction: Literal["up", "down"]) -> None:
 
 
 @requires_driver
-def key_down(key: str) -> None:
+def key_down(key: str, delay: Optional[float] = None) -> None:
     """Holds a key down, will not be released automatically.
 
     If you want to hold a key while performing an action, please use
@@ -174,19 +178,20 @@ def key_down(key: str) -> None:
     """
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_DOWN, 0)
     interception.send(keyboard, stroke)
-    time.sleep(0.025)
+    
+    time.sleep(delay or KEY_PRESS_DELAY)
 
 
 @requires_driver
-def key_up(key: str) -> None:
+def key_up(key: str, delay: Optional[float] = None) -> None:
     """Releases a key."""
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_UP, 0)
     interception.send(keyboard, stroke)
-    time.sleep(0.025)
+    time.sleep(delay or KEY_PRESS_DELAY)
 
 
 @requires_driver
-def mouse_down(button: MouseButton, delay: int | float = 0.03) -> None:
+def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     """Holds a mouse button down, will not be released automatically.
 
     If you want to hold a mouse button while performing an action, please use
@@ -196,17 +201,17 @@ def mouse_down(button: MouseButton, delay: int | float = 0.03) -> None:
 
     stroke = MouseStroke(down, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
     interception.send(mouse, stroke)
-    time.sleep(delay)
+    time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
 @requires_driver
-def mouse_up(button: MouseButton) -> None:
+def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
     _, up = MouseState.from_string(button)
 
     stroke = MouseStroke(up, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
     interception.send(mouse, stroke)
-    time.sleep(0.03)
+    time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
 @requires_driver
