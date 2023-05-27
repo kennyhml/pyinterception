@@ -1,4 +1,4 @@
-# pyintercept
+# pyinterception
 This is a greatly reworked fork of [interception_py][wrp], a python port for [interception][c_ception].
 
 The Interception API aims to build a portable programming interface that allows one to intercept and control a range of input devices.
