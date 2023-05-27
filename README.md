@@ -48,7 +48,7 @@ which made some things pretty hard to decipher and understand.
 
 
 ## How to use?
-First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work. Dont worry, is's as simple as running a .bat file and restarting your computer.
+First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work. It's a very simple install.
 
 Now, once you have all of that set up, you can go ahead and import `interception`. Let's start by identifying your used devices!
 
