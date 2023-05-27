@@ -153,7 +153,6 @@ def write(term: str, interval: int | float = 0.05) -> None:
         time.sleep(interval)
 
 
-@requires_driver
 def scroll(direction: Literal["up", "down"]) -> None:
     """Scrolls the mouse wheel one unit in a given direction."""
     amount = (
@@ -162,9 +161,7 @@ def scroll(direction: Literal["up", "down"]) -> None:
         else MouseRolling.MOUSE_WHEEL_DOWN
     )
 
-    stroke = MouseStroke(
-        MouseState.MOUSE_WHEEL, MouseFlag.MOUSE_MOVE_RELATIVE, amount, 0, 0, 0
-    )
+    stroke = MouseStroke(MouseState.MOUSE_WHEEL, 0, amount, 0, 0, 0)
     interception.send(mouse, stroke)
     time.sleep(0.025)
 
@@ -178,7 +175,7 @@ def key_down(key: str, delay: Optional[float] = None) -> None:
     """
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_DOWN, 0)
     interception.send(keyboard, stroke)
-    
+
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
