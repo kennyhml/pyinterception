@@ -44,16 +44,16 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     """Moves to a given position."""
     x, y = _utils.normalize(x, y)
     x, y = _utils.to_interception_coordinate(x, y)
+    
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, x, y, 0)
     interception.send(mouse, stroke)
 
 
 @requires_driver
 def move_relative(x: int | tuple[int, int], y: Optional[int] = None) -> None:
-    """Moves to a given position."""
+    """Moves the cursor by a given x and y amount."""
     x, y = _utils.normalize(x, y)
-    # x, y = _utils.to_interception_coordinate(x, y)
-
+    
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_RELATIVE, 0, x, y, 0)
     interception.send(mouse, stroke)
 
