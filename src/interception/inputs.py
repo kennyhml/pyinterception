@@ -164,9 +164,7 @@ def scroll(direction: Literal["up", "down"]) -> None:
         else MouseRolling.MOUSE_WHEEL_DOWN
     )
 
-    stroke = MouseStroke(
-        MouseState.MOUSE_WHEEL, MouseFlag.MOUSE_MOVE_RELATIVE, amount, 0, 0, 0
-    )
+    stroke = MouseStroke(MouseState.MOUSE_WHEEL, 0, amount, 0, 0, 0)
     interception.send(mouse, stroke)
     time.sleep(0.025)
 
