@@ -68,7 +68,7 @@ So, now you can begin to send inputs, just like you are used to it from pyautogu
 ```py
 interception.move_to(960, 540)
 
-with interception.key_down("shift"):
+with interception.hold_key("shift"):
     interception.press("a")
 
 interception.click(120, 160, button="right", delay=1)
