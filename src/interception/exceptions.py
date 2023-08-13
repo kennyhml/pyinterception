@@ -15,7 +15,10 @@ class UnknownKeyError(LookupError):
         self.key = key
 
     def __str__(self) -> str:
-        return f"Unknown key requested: {self.key}"
+        return (
+            f"Unknown key requested: {self.key}.\n"
+            "Consider running 'pyinterception show_supported_keys' for a list of all supported keys."
+        )
 
 
 class UnknownButtonError(LookupError):
@@ -25,4 +28,7 @@ class UnknownButtonError(LookupError):
         self.button = button
 
     def __str__(self) -> str:
-        return f"Unknown button requested: {self.button}"
+        return (
+            f"Unknown button requested: {self.button}.\n"
+            "Consider running 'pyinterception show_supported_buttons' for a list of all supported buttons."
+        )

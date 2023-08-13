@@ -1,6 +1,8 @@
 import functools
 import time
 from contextlib import contextmanager
+from math import e
+from re import L
 from typing import Literal, Optional
 
 from . import _utils, exceptions
@@ -32,9 +34,6 @@ KEY_PRESS_DELAY = 0.025
 
 keyboard = 1
 mouse = 11
-
-_SUPPORTED_BUTTONS = {"left", "right", "middle", "mouse4", "mouse5"}
-_SUPPORTED_KEYS = dict(KEYBOARD_MAPPING)
 
 
 def requires_driver(func):
@@ -132,7 +131,6 @@ def click(
     delay :class:`int | float`:
         The delay between moving and clicking, default 0.3.
     """
-    _check_button_exists(button)
     if x is not None:
         move_to(x, y)
         time.sleep(delay)
@@ -163,7 +161,7 @@ def right_click(clicks: int = 1, interval: int | float = 0.1) -> None:
 
 @requires_driver
 def press(key: str, presses: int = 1, interval: int | float = 0.1) -> None:
-    """Presses a key.
+    """Presses a given key, for mouse buttons use the`click` function.
 
     Parameters
     ----------
@@ -176,9 +174,6 @@ def press(key: str, presses: int = 1, interval: int | float = 0.1) -> None:
     interval :class:`int | float`:
         The interval between multiple presses, only applies if presses > 1, defaul 0.1.
     """
-    key = key.lower()
-    _check_key_exists(key)
-
     for _ in range(presses):
         key_down(key)
         key_up(key)
@@ -209,40 +204,57 @@ def write(term: str, interval: int | float = 0.05) -> None:
 @requires_driver
 def scroll(direction: Literal["up", "down"]) -> None:
     """Scrolls the mouse wheel one unit in a given direction."""
-    amount = (
-        MouseRolling.MOUSE_WHEEL_UP
-        if direction == "up"
-        else MouseRolling.MOUSE_WHEEL_DOWN
-    )
+    if direction == "up":
+        rolling = MouseRolling.MOUSE_WHEEL_UP
+    else:
+        rolling = MouseRolling.MOUSE_WHEEL_DOWN
 
-    stroke = MouseStroke(MouseState.MOUSE_WHEEL, 0, amount, 0, 0, 0)
+    stroke = MouseStroke(MouseState.MOUSE_WHEEL, 0, rolling, 0, 0, 0)
     interception.send(mouse, stroke)
     time.sleep(0.025)
 
 
 @requires_driver
-def key_down(key: str, delay: Optional[float] = None) -> None:
-    """Holds a key down, will not be released automatically.
+def key_down(key: str, delay: Optional[float | int] = None) -> None:
+    """Updates the state of the given key to be `down`.
 
-    If you want to hold a key while performing an action, please use
-    `hold_key`, which offers a context manager.
+    To release the key automatically, consider using the `hold_key` contextmanager.
+
+    ### Parameters:
+    ----------
+    key :class: `str`:
+        The key to hold down.
+
+    delay :class: `Optional[float | int]`:
+        The amount of time to wait after updating the key state.
+
+    ### Raises:
+    `UnknownKeyError` if the given key is not supported.
     """
-    key = key.lower()
-    _check_key_exists(key)
-    kcode = KEYBOARD_MAPPING[key]
-    stroke = KeyStroke(kcode, KeyState.KEY_DOWN, 0)
+    keycode = _get_keycode(key)
+    stroke = KeyStroke(keycode, KeyState.KEY_DOWN, 0)
 
     interception.send(keyboard, stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
 @requires_driver
-def key_up(key: str, delay: Optional[float] = None) -> None:
-    """Releases a key."""
-    key = key.lower()
-    _check_key_exists(key)
-    kcode = KEYBOARD_MAPPING[key]
-    stroke = KeyStroke(kcode, KeyState.KEY_UP, 0)
+def key_up(key: str, delay: Optional[float | int] = None) -> None:
+    """Updates the state of the given key to be `up`.
+
+    ### Parameters:
+    ----------
+    key :class: `str`:
+        The key to release.
+
+    delay :class: `Optional[float | int]`:
+        The amount of time to wait after updating the key state.
+
+    ### Raises:
+    `UnknownKeyError` if the given key is not supported.
+    """
+    keycode = _get_keycode(key)
+    stroke = KeyStroke(keycode, KeyState.KEY_UP, 0)
 
     interception.send(keyboard, stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
@@ -255,10 +267,8 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     If you want to hold a mouse button while performing an action, please use
     `hold_mouse`, which offers a context manager.
     """
-    _check_button_exists(button)
-    down, _ = MouseState.from_string(button)
-    stroke = MouseStroke(down, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
-
+    button_state = _get_button_states(button, down=True)
+    stroke = MouseStroke(button_state, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
     interception.send(mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
@@ -266,10 +276,8 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
 @requires_driver
 def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
-    _check_button_exists(button)
-    _, up = MouseState.from_string(button)
-    stroke = MouseStroke(up, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
-
+    button_state = _get_button_states(button, down=False)
+    stroke = MouseStroke(button_state, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
     interception.send(mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
@@ -309,32 +317,21 @@ def hold_key(key: str):
 
 
 @requires_driver
-def capture_keyboard() -> int:
+def capture_keyboard() -> None:
     """Captures keyboard keypresses until the `Escape` key is pressed.
 
     Filters out non `KEY_DOWN` events to not post the same capture twice.
     """
     context = Interception()
     context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
-
     print("Capturing keyboard presses, press ESC to quit.")
-    try:
-        while True:
-            device = context.wait()
-            stroke = context.receive(device)
 
-            if stroke.code == 0x01:
-                print("ESC pressed, exited.")
-                return device
-
-            print(f"Received stroke {stroke} on keyboard device {device}")
-            context.send(device, stroke)
-    finally:
-        context._destroy_context()
+    _listen_to_events(context, "esc")
+    print("No longer intercepting mouse events.")
 
 
 @requires_driver
-def capture_mouse() -> int:
+def capture_mouse() -> None:
     """Captures mouse left clicks until the `Escape` key is pressed.
 
     Filters out non `LEFT_BUTTON_DOWN` events to not post the same capture twice.
@@ -342,81 +339,43 @@ def capture_mouse() -> int:
     context = Interception()
     context.set_filter(context.is_mouse, FilterMouseState.FILTER_MOUSE_LEFT_BUTTON_DOWN)
     context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
+    print("Intercepting mouse left clicks, press ESC to quit.")
 
-    print("Capturing mouse left clicks, press ESC to quit.")
+    _listen_to_events(context, "esc")
+    print("No longer intercepting mouse events.")
+
+
+def _listen_to_events(context: Interception, stop_button: str) -> None:
+    """Listens to a given interception context. Stops when the `stop_button` is
+    the event key.
+
+    Remember to destroy the context in any case afterwards. Otherwise events
+    will continue to be intercepted!"""
+    stop = _get_keycode(stop_button)
     try:
         while True:
             device = context.wait()
             stroke = context.receive(device)
 
-            if context.is_keyboard(device) and stroke.code == 0x01:
-                print("ESC pressed, exited.")
-                return device
+            if context.is_keyboard(device) and stroke.code == stop:
+                return
 
-            elif not context.is_keyboard(device):
-                print(f"Received stroke {stroke} on mouse device {device}")
-
+            print(f"Received stroke {stroke} on mouse device {device}")
             context.send(device, stroke)
     finally:
-        context._destroy_context()
+        context.destroy()
 
 
-@requires_driver
-def listen_to_keyboard() -> int:
-    """Captures keyboard keypresses until the `Escape` key is pressed.
-
-    Doesn't filter out any events at all.
-    """
-    context = Interception()
-    context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_ALL)
-
-    print("Listenting to keyboard, press ESC to quit.")
+def _get_keycode(key: str) -> int:
     try:
-        while True:
-            device = context.wait()
-            stroke = context.receive(device)
-
-            if stroke.code == 0x01:
-                print("ESC pressed, exited.")
-                return device
-
-            print(f"Received stroke {stroke} on keyboard device {device}")
-            context.send(device, stroke)
-    finally:
-        context._destroy_context()
-
-
-@requires_driver
-def listen_to_mouse() -> int:
-    """Captures mouse movements / clicks until the `Escape` key is pressed.
-
-    Doesn't filter out any events at all.
-    """
-    context = Interception()
-    context.set_filter(context.is_mouse, FilterMouseState.FILTER_MOUSE_ALL)
-    context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
-
-    print("Listenting to mouse, press ESC to quit.")
-    try:
-        while True:
-            device = context.wait()
-            stroke = context.receive(device)
-
-            if context.is_keyboard(device) and stroke.code == 0x01:
-                print("ESC pressed, exited.")
-                return device
-
-            elif not context.is_keyboard(device):
-                print(f"Received stroke {stroke} on mouse device {device}")
-
-            context.send(device, stroke)
-    finally:
-        context._destroy_context()
-
-def _check_button_exists(button: MouseButton | str) -> None:
-    if button not in _SUPPORTED_BUTTONS:
-        raise exceptions.UnknownButtonError(button)
-
-def _check_key_exists(key: str) -> None:
-    if key not in _SUPPORTED_KEYS:
+        return KEYBOARD_MAPPING[key]
+    except KeyError:
         raise exceptions.UnknownKeyError(key)
+
+
+def _get_button_states(button: str, *, down: bool) -> int:
+    try:
+        states = MouseState.from_string(button)
+        return states[not down]  # first state is down, second state is up
+    except KeyError:
+        raise exceptions.UnknownButtonError(button)

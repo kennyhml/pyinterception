@@ -19,7 +19,7 @@ class Interception:
         try:
             self.build_handles()
         except Exception as e:
-            self._destroy_context()
+            self.destroy()
             raise e
 
     def build_handles(self) -> None:
@@ -129,6 +129,6 @@ class Interception:
         device_name = f"\\\\.\\interception{device_num:02d}".encode()
         return k32.CreateFileA(device_name, 0x80000000, 0, 0, 3, 0, 0)
 
-    def _destroy_context(self):
+    def destroy(self) -> None:
         for device in self._context:
             device.destroy()
