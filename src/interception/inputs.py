@@ -3,18 +3,17 @@ import time
 from contextlib import contextmanager
 from typing import Literal, Optional
 
-from . import _utils
-from ._consts import *
+from . import _utils, exceptions
+from ._consts import (FilterKeyState, FilterMouseState, KeyState, MouseFlag,
+                      MouseRolling, MouseState)
 from ._keycodes import KEYBOARD_MAPPING
-from . import exceptions
 from .interception import Interception
 from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
 # I want to avoid raising the error on import and instead raise it when attempting to call
-# functioality that relies on the driver, this also still allows access to non driver functionality
-# such as `mouse_position()`
+# functionality that relies on the driver, this also still allows access to non driver stuff
 try:
     interception = Interception()
     INTERCEPTION_INSTALLED = True
@@ -30,10 +29,12 @@ mouse = 11
 
 
 def requires_driver(func):
+    """Wraps any function that requires the interception driver to be installed
+    such that, if it is not installed, a `DriverNotFoundError` is raised"""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if not INTERCEPTION_INSTALLED:
-            raise exceptions.InterceptionNotInstalled
+            raise exceptions.DriverNotFoundError
         return func(*args, **kwargs)
 
     return wrapper
@@ -41,19 +42,48 @@ def requires_driver(func):
 
 @requires_driver
 def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
-    """Moves to a given position."""
+    """Moves to a given absolute (x, y) location on the screen.
+
+    The paramters can be passed as a tuple-like `(x, y)` coordinate or
+    seperately as `x` and `y` coordinates, it will be parsed accordingly.
+
+    Due to conversion to the coordinate system the interception driver
+    uses, an offset of 1 pixel in either x or y axis may occur or not.
+
+    ### Examples:
+    ```py
+    # passing x and y seperately, typical when manually calling the function
+    interception.move_to(800, 1200)
+    
+    # passing a tuple-like coordinate, typical for dynamic operations.
+    # simply avoids having to unpack the arguments.
+    target_location = (1200, 300)
+    interception.move_to(target_location)
+    ```
+    """
     x, y = _utils.normalize(x, y)
     x, y = _utils.to_interception_coordinate(x, y)
-    
+
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, x, y, 0)
     interception.send(mouse, stroke)
 
 
 @requires_driver
 def move_relative(x: int | tuple[int, int], y: Optional[int] = None) -> None:
-    """Moves the cursor by a given x and y amount."""
-    x, y = _utils.normalize(x, y)
+    """Moves relatively from the current cursor position by the given amounts.
+
+    The paramters can be passed as tuple-like `(x, y)` amouints or
+    seperately as `x` and `y` amount, it will be parsed accordingly.
+
+    Due to conversion to the coordinate system the interception driver
+    uses, an offset of 1 pixel in either x or y axis may occur or not.
+
     
+
+
+    """
+    x, y = _utils.normalize(x, y)
+
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_RELATIVE, 0, x, y, 0)
     interception.send(mouse, stroke)
 
@@ -178,7 +208,7 @@ def key_down(key: str, delay: Optional[float] = None) -> None:
     """
     stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_DOWN, 0)
     interception.send(keyboard, stroke)
-    
+
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
