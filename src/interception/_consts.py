@@ -1,7 +1,6 @@
 from __future__ import annotations
 from enum import IntEnum
 from typing import Literal
-from .exceptions import InvalidMouseButtonRequested
 
 
 class KeyState(IntEnum):
@@ -31,13 +30,8 @@ class MouseState(IntEnum):
     MOUSE_HWHEEL = 0x800
 
     @staticmethod
-    def from_string(
-        button: Literal["left", "right", "middle", "mouse4", "mouse5"]
-    ) -> tuple[MouseState, MouseState]:
-        try:
-            return _MAPPED_MOUSE_BUTTONS[button]
-        except KeyError:
-            raise InvalidMouseButtonRequested(button)
+    def from_string(button: str) -> tuple[MouseState, MouseState]:
+        return _MAPPED_MOUSE_BUTTONS[button]
 
 
 class MouseFlag(IntEnum):

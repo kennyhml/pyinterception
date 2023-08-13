@@ -4,8 +4,14 @@ from contextlib import contextmanager
 from typing import Literal, Optional
 
 from . import _utils, exceptions
-from ._consts import (FilterKeyState, FilterMouseState, KeyState, MouseFlag,
-                      MouseRolling, MouseState)
+from ._consts import (
+    FilterKeyState,
+    FilterMouseState,
+    KeyState,
+    MouseFlag,
+    MouseRolling,
+    MouseState,
+)
 from ._keycodes import KEYBOARD_MAPPING
 from .interception import Interception
 from .strokes import KeyStroke, MouseStroke
@@ -27,10 +33,14 @@ KEY_PRESS_DELAY = 0.025
 keyboard = 1
 mouse = 11
 
+_SUPPORTED_BUTTONS = {"left", "right", "middle", "mouse4", "mouse5"}
+_SUPPORTED_KEYS = dict(KEYBOARD_MAPPING)
+
 
 def requires_driver(func):
     """Wraps any function that requires the interception driver to be installed
     such that, if it is not installed, a `DriverNotFoundError` is raised"""
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if not INTERCEPTION_INSTALLED:
@@ -54,7 +64,7 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     ```py
     # passing x and y seperately, typical when manually calling the function
     interception.move_to(800, 1200)
-    
+
     # passing a tuple-like coordinate, typical for dynamic operations.
     # simply avoids having to unpack the arguments.
     target_location = (1200, 300)
@@ -69,27 +79,31 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
 
 
 @requires_driver
-def move_relative(x: int | tuple[int, int], y: Optional[int] = None) -> None:
+def move_relative(x: int = 0, y: int = 0) -> None:
     """Moves relatively from the current cursor position by the given amounts.
-
-    The paramters can be passed as tuple-like `(x, y)` amouints or
-    seperately as `x` and `y` amount, it will be parsed accordingly.
 
     Due to conversion to the coordinate system the interception driver
     uses, an offset of 1 pixel in either x or y axis may occur or not.
 
-    
+    ### Example:
+    ```py
+    interception.mouse_position()
+    >>> 300, 400
 
-
+    # move the mouse by 100 pixels on the x-axis and 0 in y-axis
+    interception.move_relative(100, 0)
+    interception.mouse_position()
+    >>> 400, 400
     """
-    x, y = _utils.normalize(x, y)
-
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_RELATIVE, 0, x, y, 0)
     interception.send(mouse, stroke)
 
 
 def mouse_position() -> tuple[int, int]:
-    """Returns the position of the cursor on the monitor."""
+    """Returns the current position of the cursor as `(x, y)` coordinate.
+
+    This does nothing special like other conventional mouse position functions.
+    """
     return _utils.get_cursor_pos()
 
 
@@ -97,31 +111,31 @@ def mouse_position() -> tuple[int, int]:
 def click(
     x: Optional[int | tuple[int, int]] = None,
     y: Optional[int] = None,
-    button: MouseButton = "left",
+    button: MouseButton | str = "left",
     clicks: int = 1,
     interval: int | float = 0.1,
     delay: int | float = 0.3,
 ) -> None:
-    """Clicks at a given position.
+    """Presses a mouse button at a specific location (if given).
 
     Parameters
     ----------
-    button :class:`Literal["left", "right", "middle", "mouse4", "mouse5"]`:
+    button :class:`Literal["left", "right", "middle", "mouse4", "mouse5"] | str`:
         The button to click once moved to the location (if passed), default "left".
 
     clicks :class:`int`:
-        The amount of mouse clicks to perform with the given button
+        The amount of mouse clicks to perform with the given button, default 1.
 
     interval :class:`int | float`:
-        The interval between multiple clicks, only applies if clicks > 1
+        The interval between multiple clicks, only applies if clicks > 1, default 0.1.
 
     delay :class:`int | float`:
-        The delay between moving and clicking.
+        The delay between moving and clicking, default 0.3.
     """
+    _check_button_exists(button)
     if x is not None:
         move_to(x, y)
-
-    time.sleep(delay)
+        time.sleep(delay)
 
     for _ in range(clicks):
         mouse_down(button)
@@ -131,15 +145,19 @@ def click(
             time.sleep(interval)
 
 
+# decided against using functools.partial for left_click and right_click
+# because it makes it less clear that the method attribute is a function
+# and might be misunderstood. It also still allows changing the button
+# argument afterall - just adds the correct default.
 @requires_driver
 def left_click(clicks: int = 1, interval: int | float = 0.1) -> None:
-    """Left clicks at the current position."""
+    """Thin wrapper for the `click` function with the left mouse button."""
     click(button="left", clicks=clicks, interval=interval)
 
 
 @requires_driver
 def right_click(clicks: int = 1, interval: int | float = 0.1) -> None:
-    """Right cicks at the current position."""
+    """Thin wrapper for the `click` function with the right mouse button."""
     click(button="right", clicks=clicks, interval=interval)
 
 
@@ -150,20 +168,20 @@ def press(key: str, presses: int = 1, interval: int | float = 0.1) -> None:
     Parameters
     ----------
     key :class:`str`:
-        The key to press.
+        The key to press, not case sensitive.
 
     presses :class:`int`:
-        The amount of presses to perform with the given key.
+        The amount of presses to perform with the given key, default 1.
 
     interval :class:`int | float`:
-        The interval between multiple presses, only applies if presses > 1.
+        The interval between multiple presses, only applies if presses > 1, defaul 0.1.
     """
+    key = key.lower()
+    _check_key_exists(key)
+
     for _ in range(presses):
-        try:
-            key_down(key)
-            key_up(key)
-        except KeyError:
-            raise exceptions.InvalidKeyRequested(key)
+        key_down(key)
+        key_up(key)
         if presses > 1:
             time.sleep(interval)
 
@@ -172,13 +190,16 @@ def press(key: str, presses: int = 1, interval: int | float = 0.1) -> None:
 def write(term: str, interval: int | float = 0.05) -> None:
     """Writes a term by sending each key one after another.
 
+    Uppercase characters are not currently supported, the term will
+    come out as lowercase.
+
     Parameters
     ----------
     term :class:`str`:
         The term to write.
 
     interval :class:`int | float`:
-        The interval between pressing of the different characters.
+        The interval between the different characters, default 0.05.
     """
     for c in term.lower():
         press(c)
@@ -206,16 +227,23 @@ def key_down(key: str, delay: Optional[float] = None) -> None:
     If you want to hold a key while performing an action, please use
     `hold_key`, which offers a context manager.
     """
-    stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_DOWN, 0)
-    interception.send(keyboard, stroke)
+    key = key.lower()
+    _check_key_exists(key)
+    kcode = KEYBOARD_MAPPING[key]
+    stroke = KeyStroke(kcode, KeyState.KEY_DOWN, 0)
 
+    interception.send(keyboard, stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
 @requires_driver
 def key_up(key: str, delay: Optional[float] = None) -> None:
     """Releases a key."""
-    stroke = KeyStroke(KEYBOARD_MAPPING[key], KeyState.KEY_UP, 0)
+    key = key.lower()
+    _check_key_exists(key)
+    kcode = KEYBOARD_MAPPING[key]
+    stroke = KeyStroke(kcode, KeyState.KEY_UP, 0)
+
     interception.send(keyboard, stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
@@ -227,9 +255,10 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     If you want to hold a mouse button while performing an action, please use
     `hold_mouse`, which offers a context manager.
     """
+    _check_button_exists(button)
     down, _ = MouseState.from_string(button)
-
     stroke = MouseStroke(down, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
+
     interception.send(mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
@@ -237,9 +266,10 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
 @requires_driver
 def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
+    _check_button_exists(button)
     _, up = MouseState.from_string(button)
-
     stroke = MouseStroke(up, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
+
     interception.send(mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
@@ -382,3 +412,11 @@ def listen_to_mouse() -> int:
             context.send(device, stroke)
     finally:
         context._destroy_context()
+
+def _check_button_exists(button: MouseButton | str) -> None:
+    if button not in _SUPPORTED_BUTTONS:
+        raise exceptions.UnknownButtonError(button)
+
+def _check_key_exists(key: str) -> None:
+    if key not in _SUPPORTED_KEYS:
+        raise exceptions.UnknownKeyError(key)

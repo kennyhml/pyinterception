@@ -8,21 +8,21 @@ class DriverNotFoundError(Exception):
         )
 
 
-class InvalidKeyRequested(LookupError):
+class UnknownKeyError(LookupError):
     """Raised when attemping to press a key that doesnt exist"""
 
     def __init__(self, key: str) -> None:
         self.key = key
 
     def __str__(self) -> str:
-        return f"Unsupported key requested: {self.key}"
+        return f"Unknown key requested: {self.key}"
 
 
-class InvalidMouseButtonRequested(LookupError):
+class UnknownButtonError(LookupError):
     """Raised when attemping to press a mouse button that doesnt exist"""
 
     def __init__(self, button: str) -> None:
         self.button = button
 
     def __str__(self) -> str:
-        return f"Unsupported button requested: {self.button}"
+        return f"Unknown button requested: {self.button}"
