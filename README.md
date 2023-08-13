@@ -55,10 +55,10 @@ Now, once you have all of that set up, you can go ahead and import `interception
 ```py
 import interception
 
-kdevice = interception.capture_keyboard()
-mdevice = interception.capture_mouse()
+interception.capture_keyboard()
+interception.capture_mouse()
 ```
-You will get two integers back, those integers are the number of the device you just used. Let's set this device in interception to ensure it sends events from the correct one!
+You will get two integers back in the terminal, those integers are the number of the device you just used. Let's set this device in interception to ensure it sends events from the correct one!
 ```py
 interception.inputs.keyboard = kdevice
 interception.inputs.mouse = mdevice
