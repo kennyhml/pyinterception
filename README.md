@@ -3,6 +3,10 @@ This is a greatly reworked version of [interception_py][wrp], a python port for 
 
 The Interception API aims to build a portable programming interface that allows one to intercept and control a range of input devices.
 
+## How to install
+Pyinterception is now available on PyPi under the name `interception-python`! So simply `pip install interception-python`.
+
+
 ## Why use interception?
 Did you ever try to send inputs to an application or game and, well, nothing happened? Sure, in alot of cases this is resolved by running your
 code with administrative privileges, but this is not always the case.
@@ -38,32 +42,33 @@ Why is this bad? Well, it's not always bad. If whatever you're sending inputs to
 Alright, enough about that, onto the important shit.
 
 ## Why use this fork?
-- I aim to make this port as simple to use as possible
-- Comparable to things like pyautogui or pydirectinput
-- The codebase has been refactored in a much more readable fashion
+- Extremely simple interface, comparable to pyautogui / pydirectinput
+- Dynamic keyboard adjustment for all kinds of layouts
+- Refactored in a much more readable and documented fashion
 - I work with loads of automation first hand so there is alot of QoL features.
-
-Unfortunately, the original repository is entirely undocumented and stuffed into one file for the most part,
-which made some things pretty hard to decipher and understand.
-
 
 ## How to use?
 First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work. It's a very simple install.
 
-Now, once you have all of that set up, you can go ahead and import `interception`. Let's start by identifying your used devices!
-
+Now, once you have all of that set up, you can go ahead and import `interception`. 
+The first thing you need to understand is that you have 10 different numbers for keyboard / mouse, and any of them could be the device you are
+using. You can observe this by running the following program:
 ```py
 import interception
 
 interception.capture_keyboard()
 interception.capture_mouse()
 ```
-You will get two integers back in the terminal, those integers are the number of the device you just used. Let's set this device in interception to ensure it sends events from the correct one!
-```py
-interception.inputs.keyboard = kdevice
-interception.inputs.mouse = mdevice
-```
+You can cancel the capture by pressing the ESC key, but every time you press a key or click with the mouse, you can see the intercepted event in the terminal.
+The event consists of different kinds of flags and states, but also of the number of your device we just talked about.
 
+To make sure that interception can actively send inputs from the correct devices, you have to set the correct devices. You can do this by manually checking the output,
+but that gets pretty annoying as they can and will change sometimes. To make this easier, pyinterception has a method that will automatically capture a working device:
+```py
+import interception
+
+interception.auto_capture_devices(keyboard=True, mouse=True)
+```
 So, now you can begin to send inputs, just like you are used to it from pyautogui or pydirectinput!
 ```py
 interception.move_to(960, 540)
