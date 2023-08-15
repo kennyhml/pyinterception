@@ -1,5 +1,6 @@
 from typing import Optional
-
+import functools
+from threading import Thread
 import win32api  # type: ignore
 
 
@@ -53,3 +54,20 @@ def to_interception_coordinate(x: int, y: int) -> tuple[int, int]:
 def get_cursor_pos() -> tuple[int, int]:
     """Gets the current position of the cursor using `GetCursorPos`"""
     return win32api.GetCursorPos()
+
+
+def threaded(name: str):
+    """Threads a function, beware that it will lose its return values"""
+
+    def outer(func):
+        @functools.wraps(func)
+        def inner(*args, **kwargs):
+            def run():
+                func(*args, **kwargs)
+
+            thread = Thread(target=run, name=name)
+            thread.start()
+
+        return inner
+
+    return outer

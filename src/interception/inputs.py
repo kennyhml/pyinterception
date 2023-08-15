@@ -1,22 +1,18 @@
 import functools
+import random
 import time
 from contextlib import contextmanager
-from math import e
-from re import L
 from typing import Literal, Optional
 
+from pynput.keyboard import Listener as KeyListener  # type: ignore[import]
+from pynput.mouse import Listener as MouseListener  # type: ignore[import]
+
 from . import _utils, exceptions
-from ._consts import (
-    FilterKeyState,
-    FilterMouseState,
-    KeyState,
-    MouseFlag,
-    MouseRolling,
-    MouseState,
-)
+from ._consts import (FilterKeyState, FilterMouseState, KeyState, MouseFlag,
+                      MouseRolling, MouseState)
 from ._keycodes import KEYBOARD_MAPPING
 from .interception import Interception
-from .strokes import KeyStroke, MouseStroke
+from .strokes import KeyStroke, MouseStroke, Stroke
 from .types import MouseButton
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
@@ -32,8 +28,9 @@ except Exception:
 MOUSE_BUTTON_DELAY = 0.03
 KEY_PRESS_DELAY = 0.025
 
-keyboard = 1
-mouse = 11
+
+_TEST_MOUSE_STROKE = MouseStroke(MouseState.MOUSE_MIDDLE_BUTTON_UP, 0, 0, 0, 0, 0)
+_TEST_KEY_STROKE = KeyStroke(KEYBOARD_MAPPING["space"], KeyState.KEY_UP, 0)
 
 
 def requires_driver(func):
@@ -74,7 +71,7 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     x, y = _utils.to_interception_coordinate(x, y)
 
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, x, y, 0)
-    interception.send(mouse, stroke)
+    interception.send_mouse(stroke)
 
 
 @requires_driver
@@ -95,7 +92,7 @@ def move_relative(x: int = 0, y: int = 0) -> None:
     >>> 400, 400
     """
     stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_RELATIVE, 0, x, y, 0)
-    interception.send(mouse, stroke)
+    interception.send_mouse(stroke)
 
 
 def mouse_position() -> tuple[int, int]:
@@ -210,7 +207,7 @@ def scroll(direction: Literal["up", "down"]) -> None:
         rolling = MouseRolling.MOUSE_WHEEL_DOWN
 
     stroke = MouseStroke(MouseState.MOUSE_WHEEL, 0, rolling, 0, 0, 0)
-    interception.send(mouse, stroke)
+    interception.send_mouse(stroke)
     time.sleep(0.025)
 
 
@@ -233,8 +230,7 @@ def key_down(key: str, delay: Optional[float | int] = None) -> None:
     """
     keycode = _get_keycode(key)
     stroke = KeyStroke(keycode, KeyState.KEY_DOWN, 0)
-
-    interception.send(keyboard, stroke)
+    interception.send_key(stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
@@ -255,8 +251,7 @@ def key_up(key: str, delay: Optional[float | int] = None) -> None:
     """
     keycode = _get_keycode(key)
     stroke = KeyStroke(keycode, KeyState.KEY_UP, 0)
-
-    interception.send(keyboard, stroke)
+    interception.send_key(stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
@@ -269,7 +264,7 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     """
     button_state = _get_button_states(button, down=True)
     stroke = MouseStroke(button_state, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
-    interception.send(mouse, stroke)
+    interception.send_mouse(stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
@@ -278,16 +273,16 @@ def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
     button_state = _get_button_states(button, down=False)
     stroke = MouseStroke(button_state, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
-    interception.send(mouse, stroke)
+    interception.send_mouse(stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
 @requires_driver
 @contextmanager
 def hold_mouse(button: MouseButton):
-    """A context manager to hold a mouse button while performing another action.
+    """Holds a mouse button down while performing another action.
 
-    Example:
+    ### Example:
     ```py
     with interception.hold_mouse("left"):
         interception.move_to(300, 300)
@@ -302,9 +297,9 @@ def hold_mouse(button: MouseButton):
 @requires_driver
 @contextmanager
 def hold_key(key: str):
-    """A context manager to hold a mouse button while performing another action.
+    """Hold a key down while performing another action.
 
-    Example:
+    ### Example:
     ```py
     with interception.hold_key("ctrl"):
         interception.press("c")
@@ -343,6 +338,68 @@ def capture_mouse() -> None:
 
     _listen_to_events(context, "esc")
     print("No longer intercepting mouse events.")
+
+
+@requires_driver
+def auto_capture_devices(
+    *, keyboard: bool = True, mouse: bool = True, verbose: bool = False
+) -> None:
+    """Uses pynputs keyboard and mouse listener to check whether a device
+    number will send a valid input. During this process, each possible number
+    for the device is tried - once a working number is found, it is assigned
+    to the context and the it moves to the next device.
+
+    ### Parameters:
+    --------------
+    keyboard :class:`bool`:
+        Capture the keyboard number.
+
+    mouse :class:`bool`:
+        Capture the mouse number.
+
+    verbose :class:`bool`:
+        Provide output regarding the tested numbers.
+    """
+
+    def log(info: str) -> None:
+        if verbose:
+            print(info)
+
+    mouse_listener = MouseListener(on_click=lambda *args: False)
+    key_listener = KeyListener(on_release=lambda *args: False)
+
+    for device in ("keyboard", "mouse"):
+        if (device == "keyboard" and not keyboard) or (device == "mouse" and not mouse):
+            continue
+        log(f"Trying {device} device numbers...")
+        stroke: Stroke
+        if device == "mouse":
+            listener, stroke, nums = mouse_listener, _TEST_MOUSE_STROKE, range(10, 20)
+        else:
+            listener, stroke, nums = key_listener, _TEST_KEY_STROKE, range(10)
+
+        listener.start()
+        for num in nums:
+            interception.send(num, stroke)
+            time.sleep(random.uniform(0.1, 0.3))
+            if listener.is_alive():
+                log(f"No success on {device} {num}...")
+                continue
+            log(f"Success on {device} {num}!")
+            set_devices(**{device: num})
+            break
+
+    log("Devices set.")
+
+
+def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> None:
+    """Sets the devices on the current context. Keyboard devices should be from 0 to 10
+    and mouse devices from 10 to 20 (both non-inclusive).
+
+    If a device out of range is passed, the context will raise a `ValueError`.
+    """
+    interception.keyboard = keyboard or interception.keyboard
+    interception.mouse = mouse or interception.mouse
 
 
 def _listen_to_events(context: Interception, stop_button: str) -> None:

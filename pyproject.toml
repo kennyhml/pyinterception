@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyintercept"
+name = "pyinterception"
 version = "0.0.0"
 authors = [
   { name="Kenny Hommel", email="kennyhommel36@gmail.com" },
 ]
-description = "Pyintercept"
+description = "pyinterception"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -18,5 +18,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/kennyhml/pyintercept"
-"Bug Tracker" = "https://github.com/kennyhml/pyintercept/issues"
+"Homepage" = "https://github.com/kennyhml/pyinterception"
+"Bug Tracker" = "https://github.com/kennyhml/pyinterception/issues"

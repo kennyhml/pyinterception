@@ -15,12 +15,36 @@ class Interception:
     def __init__(self) -> None:
         self._context: list[Device] = []
         self._c_events: Array[c_void_p] = (c_void_p * MAX_DEVICES)()
+        self._mouse = 11
+        self._keyboard = 1
 
         try:
             self.build_handles()
         except Exception as e:
             self.destroy()
             raise e
+
+    @property
+    def mouse(self) -> int:
+        return self._mouse
+
+    @mouse.setter
+    def mouse(self, num: int) -> None:
+        if self.is_invalid(num) or not self.is_mouse(num):
+            raise ValueError(f"{num} is not a valid mouse number (10 <= mouse <= 19).")
+        self._mouse = num
+
+    @property
+    def keyboard(self) -> int:
+        return self._keyboard
+
+    @keyboard.setter
+    def keyboard(self, num: int) -> None:
+        if self.is_invalid(num) or not self.is_keyboard(num):
+            raise ValueError(
+                f"{num} is not a valid keyboard number (0 <= keyboard <= 9)."
+            )
+        self._keyboard = num
 
     def build_handles(self) -> None:
         """Creates handles and events for all interception devices.
@@ -90,11 +114,16 @@ class Interception:
         if not self.is_invalid(device):
             return self._context[device].receive()
 
-    def send(self, device: int, stroke: Stroke):
-        if not self.is_invalid(device):
-            self._context[device].send(stroke)
-            
-    def set_filter(self,predicate,filter):
+    def send(self, device: int, stroke: Stroke) -> None:
+        self._context[device].send(stroke)
+
+    def send_key(self, stroke: Stroke) -> None:
+        self._context[self._keyboard].send(stroke)
+
+    def send_mouse(self, stroke: Stroke) -> None:
+        self._context[self._mouse].send(stroke)
+
+    def set_filter(self, predicate, filter):
         for i in range(MAX_DEVICES):
             if predicate(i):
                 result = self._context[i].set_filter(filter)
