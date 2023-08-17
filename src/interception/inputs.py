@@ -391,7 +391,7 @@ def auto_capture_devices(
 
     log("Devices set.")
 
-
+@requires_driver
 def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> None:
     """Sets the devices on the current context. Keyboard devices should be from 0 to 10
     and mouse devices from 10 to 20 (both non-inclusive).

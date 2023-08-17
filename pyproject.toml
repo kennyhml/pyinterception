@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyinterception"
+name = "interception-python"
 version = "0.0.0"
 authors = [
   { name="Kenny Hommel", email="kennyhommel36@gmail.com" },
 ]
-description = "pyinterception"
+description = "A python port of interception, which hooks into the input event handling mechanisms to simulate inputs without injected flags"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
