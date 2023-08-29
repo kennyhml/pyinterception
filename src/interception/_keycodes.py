@@ -26,13 +26,13 @@ KEYBOARD_MAPPING = {
     "f23": 0x86,
     "f24": 0x87,
     "backspace": 0x08,
-    "\b": 0x08, # same as backspace
+    "\b": 0x08,  # same as backspace
     "tab": 0x09,
-    "\t": 0x09, # same as tab
+    "\t": 0x09,  # same as tab
     "super": 0x5B,
     "clear": 0x0C,
-    "enter": 0x0D, 
-    "\n": 0x0D, # same as enter key (newline)
+    "enter": 0x0D,
+    "\n": 0x0D,  # same as enter key (newline)
     "return": 0x0D,
     "shift": 0x10,
     "ctrl": 0x11,
@@ -134,8 +134,4 @@ for c in range(32, 128):
     KEYBOARD_MAPPING[chr(c).lower()] = windll.user32.VkKeyScanA(wintypes.WCHAR(chr(c)))
 
 for k, v in KEYBOARD_MAPPING.items():
-  KEYBOARD_MAPPING[k] = windll.user32.MapVirtualKeyA(v, 0)
-
-
-
-
+    KEYBOARD_MAPPING[k] = windll.user32.MapVirtualKeyA(divmod(v, 0x100)[1], 0)

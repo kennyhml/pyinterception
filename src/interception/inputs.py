@@ -391,6 +391,7 @@ def auto_capture_devices(
 
     log("Devices set.")
 
+
 @requires_driver
 def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> None:
     """Sets the devices on the current context. Keyboard devices should be from 0 to 10
@@ -400,6 +401,16 @@ def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> 
     """
     interception.keyboard = keyboard or interception.keyboard
     interception.mouse = mouse or interception.mouse
+
+
+@requires_driver
+def get_mouse() -> int:
+    return interception.mouse
+
+
+@requires_driver
+def get_keyboard() -> int:
+    return interception.keyboard
 
 
 def _listen_to_events(context: Interception, stop_button: str) -> None:
