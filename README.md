@@ -41,7 +41,7 @@ Why is this bad? Well, it's not always bad. If whatever you're sending inputs to
 
 Alright, enough about that, onto the important shit.
 
-## Why use this fork?
+## Why use this port?
 - Extremely simple interface, comparable to pyautogui / pydirectinput
 - Dynamic keyboard adjustment for all kinds of layouts
 - Refactored in a much more readable and documented fashion
