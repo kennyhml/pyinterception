@@ -322,7 +322,7 @@ def capture_keyboard() -> None:
     print("Capturing keyboard presses, press ESC to quit.")
 
     _listen_to_events(context, "esc")
-    print("No longer intercepting mouse events.")
+    print("No longer intercepting keyboard events.")
 
 
 @requires_driver
