@@ -399,7 +399,7 @@ def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> 
 
     If a device out of range is passed, the context will raise a `ValueError`.
     """
-    interception.keyboard = keyboard or interception.keyboard
+    interception.keyboard = keyboard if keyboard is not None else interception.keyboard
     interception.mouse = mouse or interception.mouse
 
 
