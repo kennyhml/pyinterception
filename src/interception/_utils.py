@@ -44,11 +44,11 @@ def to_interception_coordinate(x: int, y: int) -> tuple[int, int]:
     interception_y = round(yfactor * y)
     """
 
-    def scale(dimension: int, point: int) -> int:
-        return int((0xFFFF / dimension) * point) + 1
+    def scale(metric_index: int, point: int) -> int:
+        scale: float = 0xFFFF / win32api.GetSystemMetrics(metric_index)
+        return round(point * scale)
 
-    screen = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
-    return scale(screen[0], x), scale(screen[1], y)
+    return scale(0, x), scale(1, y)
 
 
 def get_cursor_pos() -> tuple[int, int]:
