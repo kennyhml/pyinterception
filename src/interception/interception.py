@@ -106,7 +106,7 @@ class Interception:
         if self.is_invalid(device):
             return ""
         try:
-            return self._context[device].get_HWID().decode("utf-16")
+            return self._context[device].get_HWID()
         except:
             return ""
 

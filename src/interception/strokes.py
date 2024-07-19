@@ -5,7 +5,6 @@ import struct
 from typing import Protocol, ClassVar, TypeVar, Type
 from dataclasses import dataclass, field
 
-
 T = TypeVar("T", bound="Stroke")
 
 

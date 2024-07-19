@@ -1,20 +1,11 @@
 from __future__ import annotations
 
-from ctypes import c_byte, c_int, c_ubyte, c_ushort, memmove, windll
+import ctypes
+
 from dataclasses import dataclass, field
-from typing import Any, Type
-
+from typing import Optional, Type
 from .strokes import KeyStroke, MouseStroke, Stroke
-
-k32 = windll.LoadLibrary("kernel32")
-
-
-def device_io_call(decorated):
-    def decorator(device: Device, *args, **kwargs):
-        command, inbuffer, outbuffer = decorated(device, *args, **kwargs)
-        return device._device_io_control(command, inbuffer, outbuffer)
-
-    return decorator
+from . import _ioctl
 
 
 @dataclass
@@ -22,30 +13,23 @@ class DeviceIOResult:
     """Represents the result of an IO operation on a `Device`."""
 
     result: int
-    data: Any
+    data: Optional[ctypes.Array]
     data_bytes: bytes = field(init=False, repr=False)
 
     def __post_init__(self):
         if self.data is not None:
-            self.data = list(self.data)
             self.data_bytes = bytes(self.data)
 
 
 class Device:
-    _bytes_returned = (c_int * 1)(0)
-    _c_byte_500 = (c_byte * 500)()
-    _c_int_2 = (c_int * 2)()
-    _c_ushort_1 = (c_ushort * 1)()
-    _c_int_1 = (c_int * 1)()
-
     def __init__(self, handle, event, *, is_keyboard: bool):
         self.is_keyboard = is_keyboard
         self._parser: Type[KeyStroke] | Type[MouseStroke]
         if is_keyboard:
-            self._c_recv_buffer = (c_ubyte * 12)()
+            self._c_recv_buffer = (ctypes.c_ubyte * 12)()
             self._parser = KeyStroke
         else:
-            self._c_recv_buffer = (c_ubyte * 24)()
+            self._c_recv_buffer = (ctypes.c_ubyte * 24)()
             self._parser = MouseStroke
 
         if handle == -1 or event == 0:
@@ -53,6 +37,12 @@ class Device:
 
         self.handle = handle
         self.event = event
+
+        self._bytes_returned = (ctypes.c_uint32 * 1)(0)
+        self._hwid_buffer = (ctypes.c_byte * 500)()
+        self._event_handle = (ctypes.c_int * 2)()
+        self._filter_buffer = (ctypes.c_ushort * 1)()
+        self._prdc_buffer = (ctypes.c_int * 1)()
 
         if self._device_set_event().result == 0:
             raise Exception("Can't communicate with driver")
@@ -65,72 +55,76 @@ class Device:
 
     def destroy(self):
         if self.handle != -1:
-            k32.CloseHandle(self.handle)
+            ctypes.windll.kernel32.CloseHandle(self.handle)
 
         if self.event:
-            k32.CloseHandle(self.event)
+            ctypes.windll.kernel32.CloseHandle(self.event)
 
-    @device_io_call
-    def get_precedence(self):
-        return 0x222008, 0, self._c_int_1
-
-    @device_io_call
-    def set_precedence(self, precedence: int):
-        self._c_int_1[0] = precedence
-        return 0x222004, self._c_int_1, 0
-
-    @device_io_call
-    def get_filter(self):
-        return 0x222020, 0, self._c_ushort_1
-
-    @device_io_call
-    def set_filter(self, filter):
-        self._c_ushort_1[0] = filter
-        return 0x222010, self._c_ushort_1, 0
-
-    @device_io_call
-    def _get_HWID(self):
-        return 0x222200, 0, self._c_byte_500
-
-    def get_HWID(self):
-        data = self._get_HWID().data_bytes
-        return data[: self._bytes_returned[0]]
-
-    @device_io_call
-    def _receive(self):
-        return 0x222100, 0, self._c_recv_buffer
-
-    def receive(self):
+    def receive(self) -> Stroke:
         data = self._receive().data_bytes
         return self._parser.parse(data)
 
-    def send(self, stroke: Stroke):
+    def send(self, stroke: Stroke) -> DeviceIOResult:
         if not isinstance(stroke, self._parser):
-            raise ValueError(
-                f"Can't parse {stroke} with {self._parser.__name__} parser!"
-            )
-        self._send(stroke)
+            raise ValueError(f"Can't parse {stroke} with {self._parser.__name__}!")
+        return self._send(stroke)
 
-    @device_io_call
-    def _send(self, stroke: Stroke):
-        memmove(self._c_recv_buffer, stroke.data, len(self._c_recv_buffer))
-        return 0x222080, self._c_recv_buffer, 0
+    def get_precedence(self) -> DeviceIOResult:
+        return self._device_io_control(
+            _ioctl.IOCTL_GET_PRECEDENCE, None, self._prdc_buffer
+        )
 
-    @device_io_call
-    def _device_set_event(self):
-        self._c_int_2[0] = self.event
-        return 0x222040, self._c_int_2, 0
+    def set_precedence(self, precedence: int) -> DeviceIOResult:
+        self._prdc_buffer[0] = precedence
+        return self._device_io_control(
+            _ioctl.IOCTL_SET_PRECEDENCE, self._prdc_buffer, None
+        )
 
-    def _device_io_control(self, command, inbuffer, outbuffer) -> DeviceIOResult:
-        res = k32.DeviceIoControl(
+    def get_filter(self) -> DeviceIOResult:
+        return self._device_io_control(
+            _ioctl.IOCTL_GET_FILTER, None, self._filter_buffer
+        )
+
+    def set_filter(self, filter) -> DeviceIOResult:
+        self._filter_buffer[0] = filter
+        return self._device_io_control(
+            _ioctl.IOCTL_SET_FILTER, self._filter_buffer, None
+        )
+
+    def get_HWID(self) -> str:
+        data = self._get_HWID().data_bytes
+        return data[0 : self._bytes_returned[0]].decode("utf-16")
+
+    def _get_HWID(self) -> DeviceIOResult:
+        return self._device_io_control(
+            _ioctl.IOCTL_GET_HARDWARE_ID, None, self._hwid_buffer
+        )
+
+    def _receive(self) -> DeviceIOResult:
+        return self._device_io_control(_ioctl.IOCTL_READ, None, self._c_recv_buffer)
+
+    def _send(self, stroke: Stroke) -> DeviceIOResult:
+        ctypes.memmove(self._c_recv_buffer, stroke.data, len(self._c_recv_buffer))
+        return self._device_io_control(_ioctl.IOCTL_WRITE, self._c_recv_buffer, None)
+
+    def _device_set_event(self) -> DeviceIOResult:
+        self._event_handle[0] = self.event
+        return self._device_io_control(_ioctl.IOCTL_SET_EVENT, self._event_handle, None)
+
+    def _device_io_control(
+        self,
+        command: int,
+        inbuffer: Optional[ctypes.Array] = None,
+        outbuffer: Optional[ctypes.Array] = None,
+    ) -> DeviceIOResult:
+        res = ctypes.windll.kernel32.DeviceIoControl(
             self.handle,
             command,
             inbuffer,
-            len(bytes(inbuffer)) if inbuffer else 0,
+            len(bytes(inbuffer)) if inbuffer is not None else 0,
             outbuffer,
-            len(bytes(outbuffer)) if outbuffer else 0,
+            len(bytes(outbuffer)) if outbuffer is not None else 0,
             self._bytes_returned,
             0,
         )
-
-        return DeviceIOResult(res, outbuffer if outbuffer else None)
+        return DeviceIOResult(res, outbuffer)
