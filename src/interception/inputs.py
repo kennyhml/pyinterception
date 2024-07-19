@@ -8,8 +8,14 @@ from pynput.keyboard import Listener as KeyListener  # type: ignore[import]
 from pynput.mouse import Listener as MouseListener  # type: ignore[import]
 
 from . import _utils, exceptions
-from ._consts import (FilterKeyState, FilterMouseState, KeyState, MouseFlag,
-                      MouseRolling, MouseState)
+from ._consts import (
+    FilterKeyFlag,
+    FilterMouseButtonFlag,
+    KeyFlag,
+    MouseFlag,
+    MouseRolling,
+    MouseButtonFlag,
+)
 from ._keycodes import KEYBOARD_MAPPING
 from .interception import Interception
 from .strokes import KeyStroke, MouseStroke, Stroke
@@ -29,8 +35,10 @@ MOUSE_BUTTON_DELAY = 0.03
 KEY_PRESS_DELAY = 0.025
 
 
-_TEST_MOUSE_STROKE = MouseStroke(MouseState.MOUSE_MIDDLE_BUTTON_UP, 0, 0, 0, 0, 0)
-_TEST_KEY_STROKE = KeyStroke(KEYBOARD_MAPPING["space"], KeyState.KEY_UP, 0)
+_TEST_MOUSE_STROKE = MouseStroke(
+    MouseFlag.MOUSE_MOVE_RELATIVE, MouseButtonFlag.MOUSE_MIDDLE_BUTTON_UP, 0, 0, 0
+)
+_TEST_KEY_STROKE = KeyStroke(KEYBOARD_MAPPING["space"], KeyFlag.KEY_UP)
 
 
 def requires_driver(func):
@@ -70,7 +78,7 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     x, y = _utils.normalize(x, y)
     x, y = _utils.to_interception_coordinate(x, y)
 
-    stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, x, y, 0)
+    stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
     interception.send_mouse(stroke)
 
 
@@ -91,7 +99,7 @@ def move_relative(x: int = 0, y: int = 0) -> None:
     interception.mouse_position()
     >>> 400, 400
     """
-    stroke = MouseStroke(0, MouseFlag.MOUSE_MOVE_RELATIVE, 0, x, y, 0)
+    stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, x, y)
     interception.send_mouse(stroke)
 
 
@@ -202,11 +210,13 @@ def write(term: str, interval: int | float = 0.05) -> None:
 def scroll(direction: Literal["up", "down"]) -> None:
     """Scrolls the mouse wheel one unit in a given direction."""
     if direction == "up":
-        rolling = MouseRolling.MOUSE_WHEEL_UP
+        button_data = MouseRolling.MOUSE_WHEEL_UP
     else:
-        rolling = MouseRolling.MOUSE_WHEEL_DOWN
+        button_data = MouseRolling.MOUSE_WHEEL_DOWN
 
-    stroke = MouseStroke(MouseState.MOUSE_WHEEL, 0, rolling, 0, 0, 0)
+    stroke = MouseStroke(
+        MouseFlag.MOUSE_MOVE_RELATIVE, MouseButtonFlag.MOUSE_WHEEL, button_data, 0, 0
+    )
     interception.send_mouse(stroke)
     time.sleep(0.025)
 
@@ -229,7 +239,7 @@ def key_down(key: str, delay: Optional[float | int] = None) -> None:
     `UnknownKeyError` if the given key is not supported.
     """
     keycode = _get_keycode(key)
-    stroke = KeyStroke(keycode, KeyState.KEY_DOWN, 0)
+    stroke = KeyStroke(keycode, KeyFlag.KEY_DOWN)
     interception.send_key(stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
@@ -250,7 +260,7 @@ def key_up(key: str, delay: Optional[float | int] = None) -> None:
     `UnknownKeyError` if the given key is not supported.
     """
     keycode = _get_keycode(key)
-    stroke = KeyStroke(keycode, KeyState.KEY_UP, 0)
+    stroke = KeyStroke(keycode, KeyFlag.KEY_UP)
     interception.send_key(stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
@@ -263,7 +273,7 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     `hold_mouse`, which offers a context manager.
     """
     button_state = _get_button_states(button, down=True)
-    stroke = MouseStroke(button_state, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
+    stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, button_state, 0, 0, 0)
     interception.send_mouse(stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
@@ -272,7 +282,7 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
 def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
     button_state = _get_button_states(button, down=False)
-    stroke = MouseStroke(button_state, MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, 0, 0)
+    stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, button_state, 0, 0, 0)
     interception.send_mouse(stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
@@ -318,7 +328,7 @@ def capture_keyboard() -> None:
     Filters out non `KEY_DOWN` events to not post the same capture twice.
     """
     context = Interception()
-    context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
+    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
     print("Capturing keyboard presses, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -332,8 +342,10 @@ def capture_mouse() -> None:
     Filters out non `LEFT_BUTTON_DOWN` events to not post the same capture twice.
     """
     context = Interception()
-    context.set_filter(context.is_mouse, FilterMouseState.FILTER_MOUSE_LEFT_BUTTON_DOWN)
-    context.set_filter(context.is_keyboard, FilterKeyState.FILTER_KEY_DOWN)
+    context.set_filter(
+        context.is_mouse, FilterMouseButtonFlag.FILTER_MOUSE_LEFT_BUTTON_DOWN
+    )
+    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
     print("Intercepting mouse left clicks, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -399,8 +411,11 @@ def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> 
 
     If a device out of range is passed, the context will raise a `ValueError`.
     """
-    interception.keyboard = keyboard if keyboard is not None else interception.keyboard
-    interception.mouse = mouse or interception.mouse
+    if keyboard is not None:
+        interception.keyboard = keyboard
+
+    if mouse is not None:
+        interception.mouse = mouse
 
 
 @requires_driver
@@ -443,7 +458,7 @@ def _get_keycode(key: str) -> int:
 
 def _get_button_states(button: str, *, down: bool) -> int:
     try:
-        states = MouseState.from_string(button)
+        states = MouseButtonFlag.from_string(button)
         return states[not down]  # first state is down, second state is up
     except KeyError:
         raise exceptions.UnknownButtonError(button)

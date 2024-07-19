@@ -2,7 +2,13 @@ from __future__ import annotations
 from enum import IntEnum
 
 
-class KeyState(IntEnum):
+class KeyFlag(IntEnum):
+    """
+    Interception uses the key flag enums as defined per win32.
+
+    See `Flags` member: https://learn.microsoft.com/de-de/windows/win32/api/winuser/ns-winuser-rawkeyboard#members
+    """
+
     KEY_DOWN = 0x00
     KEY_UP = 0x01
     KEY_E0 = 0x02
@@ -12,7 +18,13 @@ class KeyState(IntEnum):
     KEY_TERMSRV_VKPACKET = 0x20
 
 
-class MouseState(IntEnum):
+class MouseButtonFlag(IntEnum):
+    """
+    Interception uses the mouse button flag enums as defined per win32.
+
+    See usButtonFlags member: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawmouse#members
+    """
+
     MOUSE_LEFT_BUTTON_DOWN = 0x001
     MOUSE_LEFT_BUTTON_UP = 0x002
     MOUSE_RIGHT_BUTTON_DOWN = 0x004
@@ -29,11 +41,17 @@ class MouseState(IntEnum):
     MOUSE_HWHEEL = 0x800
 
     @staticmethod
-    def from_string(button: str) -> tuple[MouseState, MouseState]:
+    def from_string(button: str) -> tuple[MouseButtonFlag, MouseButtonFlag]:
         return _MAPPED_MOUSE_BUTTONS[button]
 
 
 class MouseFlag(IntEnum):
+    """
+    Interception uses the mouse state enums as defined per win32.
+
+    See usFlags member: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawmouse#members
+    """
+
     MOUSE_MOVE_RELATIVE = 0x000
     MOUSE_MOVE_ABSOLUTE = 0x001
     MOUSE_VIRTUAL_DESKTOP = 0x002
@@ -43,47 +61,63 @@ class MouseFlag(IntEnum):
 
 
 class MouseRolling(IntEnum):
+    """
+    See: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawmouse#remarks
+
+    The wheel rotation will be a multiple of WHEEL_DELTA, which is set at 120.
+    This is the threshold for action to be taken, and one such action should occur for each delta.
+    """
+
     MOUSE_WHEEL_UP = 0x78
     MOUSE_WHEEL_DOWN = 0xFF88
 
 
-class FilterMouseState(IntEnum):
+class FilterMouseButtonFlag(IntEnum):
     FILTER_MOUSE_NONE = 0x0000
     FILTER_MOUSE_ALL = 0xFFFF
 
-    FILTER_MOUSE_LEFT_BUTTON_DOWN = MouseState.MOUSE_LEFT_BUTTON_DOWN
-    FILTER_MOUSE_LEFT_BUTTON_UP = MouseState.MOUSE_LEFT_BUTTON_UP
-    FILTER_MOUSE_RIGHT_BUTTON_DOWN = MouseState.MOUSE_RIGHT_BUTTON_DOWN
-    FILTER_MOUSE_RIGHT_BUTTON_UP = MouseState.MOUSE_RIGHT_BUTTON_UP
-    FILTER_MOUSE_MIDDLE_BUTTON_DOWN = MouseState.MOUSE_MIDDLE_BUTTON_DOWN
-    FILTER_MOUSE_MIDDLE_BUTTON_UP = MouseState.MOUSE_MIDDLE_BUTTON_UP
+    FILTER_MOUSE_LEFT_BUTTON_DOWN = MouseButtonFlag.MOUSE_LEFT_BUTTON_DOWN
+    FILTER_MOUSE_LEFT_BUTTON_UP = MouseButtonFlag.MOUSE_LEFT_BUTTON_UP
+    FILTER_MOUSE_RIGHT_BUTTON_DOWN = MouseButtonFlag.MOUSE_RIGHT_BUTTON_DOWN
+    FILTER_MOUSE_RIGHT_BUTTON_UP = MouseButtonFlag.MOUSE_RIGHT_BUTTON_UP
+    FILTER_MOUSE_MIDDLE_BUTTON_DOWN = MouseButtonFlag.MOUSE_MIDDLE_BUTTON_DOWN
+    FILTER_MOUSE_MIDDLE_BUTTON_UP = MouseButtonFlag.MOUSE_MIDDLE_BUTTON_UP
 
-    FILTER_MOUSE_BUTTON_4_DOWN = MouseState.MOUSE_BUTTON_4_DOWN
-    FILTER_MOUSE_BUTTON_4_UP = MouseState.MOUSE_BUTTON_4_UP
-    FILTER_MOUSE_BUTTON_5_DOWN = MouseState.MOUSE_BUTTON_5_DOWN
-    FILTER_MOUSE_BUTTON_5_UP = MouseState.MOUSE_BUTTON_5_UP
+    FILTER_MOUSE_BUTTON_4_DOWN = MouseButtonFlag.MOUSE_BUTTON_4_DOWN
+    FILTER_MOUSE_BUTTON_4_UP = MouseButtonFlag.MOUSE_BUTTON_4_UP
+    FILTER_MOUSE_BUTTON_5_DOWN = MouseButtonFlag.MOUSE_BUTTON_5_DOWN
+    FILTER_MOUSE_BUTTON_5_UP = MouseButtonFlag.MOUSE_BUTTON_5_UP
 
-    FILTER_MOUSE_WHEEL = MouseState.MOUSE_WHEEL
-    FILTER_MOUSE_HWHEEL = MouseState.MOUSE_HWHEEL
+    FILTER_MOUSE_WHEEL = MouseButtonFlag.MOUSE_WHEEL
+    FILTER_MOUSE_HWHEEL = MouseButtonFlag.MOUSE_HWHEEL
     FILTER_MOUSE_MOVE = 0x1000
 
 
-class FilterKeyState(IntEnum):
+class FilterKeyFlag(IntEnum):
     FILTER_KEY_NONE = 0x0000
     FILTER_KEY_ALL = 0xFFFF
-    FILTER_KEY_DOWN = KeyState.KEY_UP
-    FILTER_KEY_UP = KeyState.KEY_UP << 1
-    FILTER_KEY_E0 = KeyState.KEY_E0 << 1
-    FILTER_KEY_E1 = KeyState.KEY_E1 << 1
-    FILTER_KEY_TERMSRV_SET_LED = KeyState.KEY_TERMSRV_SET_LED << 1
-    FILTER_KEY_TERMSRV_SHADOW = KeyState.KEY_TERMSRV_SHADOW << 1
-    FILTER_KEY_TERMSRV_VKPACKET = KeyState.KEY_TERMSRV_VKPACKET << 1
+    FILTER_KEY_DOWN = KeyFlag.KEY_UP
+    FILTER_KEY_UP = KeyFlag.KEY_UP << 1
+    FILTER_KEY_E0 = KeyFlag.KEY_E0 << 1
+    FILTER_KEY_E1 = KeyFlag.KEY_E1 << 1
+    FILTER_KEY_TERMSRV_SET_LED = KeyFlag.KEY_TERMSRV_SET_LED << 1
+    FILTER_KEY_TERMSRV_SHADOW = KeyFlag.KEY_TERMSRV_SHADOW << 1
+    FILTER_KEY_TERMSRV_VKPACKET = KeyFlag.KEY_TERMSRV_VKPACKET << 1
 
 
 _MAPPED_MOUSE_BUTTONS = {
-    "left": (MouseState.MOUSE_LEFT_BUTTON_DOWN, MouseState.MOUSE_LEFT_BUTTON_UP),
-    "right": (MouseState.MOUSE_RIGHT_BUTTON_DOWN, MouseState.MOUSE_RIGHT_BUTTON_UP),
-    "middle": (MouseState.MOUSE_MIDDLE_BUTTON_DOWN, MouseState.MOUSE_MIDDLE_BUTTON_UP),
-    "mouse4": (MouseState.MOUSE_BUTTON_4_DOWN, MouseState.MOUSE_BUTTON_4_UP),
-    "mouse5": (MouseState.MOUSE_BUTTON_5_DOWN, MouseState.MOUSE_BUTTON_5_UP),
+    "left": (
+        MouseButtonFlag.MOUSE_LEFT_BUTTON_DOWN,
+        MouseButtonFlag.MOUSE_LEFT_BUTTON_UP,
+    ),
+    "right": (
+        MouseButtonFlag.MOUSE_RIGHT_BUTTON_DOWN,
+        MouseButtonFlag.MOUSE_RIGHT_BUTTON_UP,
+    ),
+    "middle": (
+        MouseButtonFlag.MOUSE_MIDDLE_BUTTON_DOWN,
+        MouseButtonFlag.MOUSE_MIDDLE_BUTTON_UP,
+    ),
+    "mouse4": (MouseButtonFlag.MOUSE_BUTTON_4_DOWN, MouseButtonFlag.MOUSE_BUTTON_4_UP),
+    "mouse5": (MouseButtonFlag.MOUSE_BUTTON_5_DOWN, MouseButtonFlag.MOUSE_BUTTON_5_UP),
 }
