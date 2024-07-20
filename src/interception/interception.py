@@ -1,163 +1,122 @@
-from ctypes import Array, c_void_p, windll
-from typing import Final
+import ctypes
 
+from typing import Callable, Final, Optional
 from .device import Device
-from .strokes import Stroke
 
 MAX_DEVICES: Final = 20
 MAX_KEYBOARD: Final = 10
 MAX_MOUSE: Final = 10
 
-k32 = windll.LoadLibrary("kernel32")
+GENERIC_READ: Final = 0x80000000
+OPEN_EXISTING: Final = 0x3
+WAIT_TIMEOUT: Final = 0x102
+WAIT_FAILED: Final = 0xFFFFFFFF
 
 
 class Interception:
+    """Represents an interception context.
+
+    Encapsulating the environment into a class context is useful in order to
+    allow the quick creation of different contexts (e.g a filter context).
+
+    Properties
+    ----------
+    mouse :class:`int`:
+        The mouse device number the context is currently using
+
+    keyboard :class:`int`:
+        The keyboard device number the context is currently using.
+
+    devices :class:`list[Device]`:
+        A list containing all 20 devices the context is managing
+    """
+
     def __init__(self) -> None:
-        self._context: list[Device] = []
-        self._c_events: Array[c_void_p] = (c_void_p * MAX_DEVICES)()
-        self._mouse = 11
-        self._keyboard = 1
+        self._devices: list[Device] = []
+        self._event_handles = (ctypes.c_void_p * MAX_DEVICES)()
+        self._using_mouse = 11
+        self._using_keyboard = 1
 
         try:
-            self.build_handles()
-        except Exception as e:
+            self.get_handles()
+        except Exception:
             self.destroy()
-            raise e
+            raise
 
     @property
     def mouse(self) -> int:
-        return self._mouse
+        return self._using_mouse
 
     @mouse.setter
     def mouse(self, num: int) -> None:
-        if self.is_invalid(num) or not self.is_mouse(num):
-            raise ValueError(f"{num} is not a valid mouse number (10 <= mouse <= 19).")
-        self._mouse = num
+        if is_invalid(num) or not is_mouse(num):
+            raise ValueError(f"{num} mouse number does not match (10 <= num <= 19).")
+        self._using_mouse = num
 
     @property
     def keyboard(self) -> int:
-        return self._keyboard
+        return self._using_keyboard
 
     @keyboard.setter
     def keyboard(self, num: int) -> None:
-        if self.is_invalid(num) or not self.is_keyboard(num):
-            raise ValueError(
-                f"{num} is not a valid keyboard number (0 <= keyboard <= 9)."
-            )
-        self._keyboard = num
+        if is_invalid(num) or not is_keyboard(num):
+            raise ValueError(f"{num} keyboard number does not match (0 <= num <= 9).")
+        self._using_keyboard = num
 
-    def build_handles(self) -> None:
-        """Creates handles and events for all interception devices.
-
-        Iterates over all interception devices and creates a `Device` object for each one.
-        A `Device` object represents an interception device and includes a handle to the device,
-        an event that can be used to wait for input on the device, and a flag indicating whether
-        the device is a keyboard or a mouse.
-
-        The handle is created using the `create_device_handle()` method, which calls the Windows API
-        function `CreateFileA()` with the appropriate parameters.
-
-        The event is created using the Windows API function `CreateEventA()`, which creates a
-        synchronization event that can be signaled when input is available on the device.
-
-        The `is_keyboard()` method is called to determine whether the device is a keyboard or a mouse.
-        This is used to set the `is_keyboard` flag on the Device object.
-
-        The created Device objects are added to the context list and the corresponding event
-        handle is added to the c_events dictionary.
-
-        Raises:
-            IOError: If a device handle cannot be created.
-        """
-        for device_num in range(MAX_DEVICES):
-            device = Device(
-                self.create_device_handle(device_num),
-                k32.CreateEventA(0, 1, 0, 0),
-                is_keyboard=self.is_keyboard(device_num),
-            )
-            self._context.append(device)
-            self._c_events[device_num] = device.event
-
-    def wait(self, milliseconds: int = -1):
-        """Waits for input on any interception device.
-
-        Calls the `WaitForMultipleObjects()` Windows API function to wait for input on any of the
-        interception devices. The function will block until input is available on one of the devices
-        or until the specified timeout period (in milliseconds) has elapsed. If `milliseconds` is
-        not specified or is negative, the function will block indefinitely until input is available.
-
-        If input is available on a device, the function will return the index of the device in the
-        `_c_events` dictionary, indicating which device received input. If the timeout period
-        elapses before input is available, the function will return 0. If an error occurs, the function
-        will raise an OSError.
-
-        Raises:
-            OSError: If an error occurs while waiting for input.
-        """
-        result = k32.WaitForMultipleObjects(
-            MAX_DEVICES, self._c_events, 0, milliseconds
-        )
-        if result in [-1, 0x102]:
-            return 0
-        return result
-
-    def get_HWID(self, device: int):
-        """Returns the HWID of a device in the context"""
-        if self.is_invalid(device):
-            return ""
-        try:
-            return self._context[device].get_HWID()
-        except:
-            return ""
-
-    def receive(self, device: int):
-        if not self.is_invalid(device):
-            return self._context[device].receive()
-
-    def send(self, device: int, stroke: Stroke) -> None:
-        self._context[device].send(stroke)
-
-    def send_key(self, stroke: Stroke) -> None:
-        self._context[self._keyboard].send(stroke)
-
-    def send_mouse(self, stroke: Stroke) -> None:
-        self._context[self._mouse].send(stroke)
-
-    def set_filter(self, predicate, filter):
-        for i in range(MAX_DEVICES):
-            if predicate(i):
-                result = self._context[i].set_filter(filter)
-
-    @staticmethod
-    def is_keyboard(device):
-        return device + 1 > 0 and device + 1 <= MAX_KEYBOARD
-
-    @staticmethod
-    def is_mouse(device):
-        return device + 1 > MAX_KEYBOARD and device + 1 <= MAX_KEYBOARD + MAX_MOUSE
-
-    @staticmethod
-    def is_invalid(device):
-        return device + 1 <= 0 or device + 1 > (MAX_KEYBOARD + MAX_MOUSE)
-
-    @staticmethod
-    def create_device_handle(device_num: int):
-        """Creates a handle to a specified device.
-
-        Access mode for the device is `GENERIC_READ | GENERIC_WRITE`, allows the
-        handle to read and write to the device.
-
-        Sharing mode for the device is `FILE_SHARE_READ | FILE_SHARE_WRITE`, which
-        allows other processes to read from and write to the device while it is open.
-
-        Creation disposition for the device is `OPEN_EXISTING`, indicating that the device
-        should be opened if it already exists.
-
-        Flags and attributes for the device are not used in this case.
-        """
-        device_name = f"\\\\.\\interception{device_num:02d}".encode()
-        return k32.CreateFileA(device_name, 0x80000000, 0, 0, 3, 0, 0)
+    @property
+    def devices(self) -> list[Device]:
+        return self._devices
 
     def destroy(self) -> None:
-        for device in self._context:
+        for device in self._devices:
             device.destroy()
+
+    def get_handles(self) -> None:
+        """Opens handles to all 20 interception devices and events.
+
+        See:
+        https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
+        https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa
+        """
+        for num in range(MAX_DEVICES):
+            device_name = f"\\\\.\\interception{num:02d}".encode()
+            hdevice = ctypes.windll.kernel32.CreateFileA(
+                device_name, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0
+            )
+            hevent = ctypes.windll.kernel32.CreateEventA(0, 1, 0, 0)
+
+            device = Device(hdevice, hevent, is_keyboard=is_keyboard(num))
+            self._devices.append(device)
+            self._event_handles[num] = hevent
+
+    def await_input(self, timeout_milliseconds: int = -1) -> Optional[int]:
+        """Waits until any of the devices received an input or the timeout has
+        expired (if it is non-negative).
+
+        Once an input was received, the number of the device that received the input
+        is returned.
+        """
+        result = ctypes.windll.kernel32.WaitForMultipleObjects(
+            MAX_DEVICES, self._event_handles, 0, timeout_milliseconds
+        )
+        return None if result in [-1, WAIT_TIMEOUT, WAIT_FAILED] else result
+
+    def set_filter(self, condition: Callable[[int], bool], filter: int):
+        for i in range(MAX_DEVICES):
+            if condition(i):
+                self._devices[i].set_filter(filter)
+
+
+def is_keyboard(device: int):
+    """Determines whether a device is a keyboard based on it's index"""
+    return 0 <= device <= MAX_KEYBOARD - 1
+
+
+def is_mouse(device: int):
+    """Determines whether a device is a mouse based on it's index"""
+    return MAX_KEYBOARD <= device <= MAX_MOUSE - 1
+
+
+def is_invalid(device: int):
+    """Determines whether a device is invalid based on it's index"""
+    return not 0 <= device <= 19
