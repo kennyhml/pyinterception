@@ -1,6 +1,8 @@
 import ctypes
 
 from typing import Callable, Final, Optional
+
+from .strokes import Stroke
 from .device import Device
 
 MAX_DEVICES: Final = 20
@@ -106,6 +108,9 @@ class Interception:
             if condition(i):
                 self._devices[i].set_filter(filter)
 
+    def send(self, device: int, stroke: Stroke):
+        return self._devices[device].send(stroke)
+
 
 def is_keyboard(device: int):
     """Determines whether a device is a keyboard based on it's index"""
@@ -114,7 +119,7 @@ def is_keyboard(device: int):
 
 def is_mouse(device: int):
     """Determines whether a device is a mouse based on it's index"""
-    return MAX_KEYBOARD <= device <= MAX_MOUSE - 1
+    return MAX_KEYBOARD <= device <= (MAX_KEYBOARD + MAX_MOUSE) - 1
 
 
 def is_invalid(device: int):

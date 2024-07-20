@@ -4,9 +4,6 @@ import time
 from contextlib import contextmanager
 from typing import Literal, Optional
 
-from pynput.keyboard import Listener as KeyListener  # type: ignore[import]
-from pynput.mouse import Listener as MouseListener  # type: ignore[import]
-
 from . import _utils, exceptions
 from ._consts import (
     FilterKeyFlag,
@@ -17,8 +14,8 @@ from ._consts import (
     MouseButtonFlag,
 )
 from ._keycodes import KEYBOARD_MAPPING
-from .interception import Interception
-from .strokes import KeyStroke, MouseStroke, Stroke
+from .interception import Interception, is_keyboard, is_mouse
+from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
@@ -33,12 +30,6 @@ except Exception:
 
 MOUSE_BUTTON_DELAY = 0.03
 KEY_PRESS_DELAY = 0.025
-
-
-_TEST_MOUSE_STROKE = MouseStroke(
-    MouseFlag.MOUSE_MOVE_RELATIVE, MouseButtonFlag.MOUSE_MIDDLE_BUTTON_UP, 0, 0, 0
-)
-_TEST_KEY_STROKE = KeyStroke(KEYBOARD_MAPPING["space"], KeyFlag.KEY_UP)
 
 
 def requires_driver(func):
@@ -79,7 +70,7 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     x, y = _utils.to_interception_coordinate(x, y)
 
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
-    interception.send_mouse(stroke)
+    interception.send(interception.mouse, stroke)
 
 
 @requires_driver
@@ -100,7 +91,7 @@ def move_relative(x: int = 0, y: int = 0) -> None:
     >>> 400, 400
     """
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, x, y)
-    interception.send_mouse(stroke)
+    interception.send(interception.mouse, stroke)
 
 
 def mouse_position() -> tuple[int, int]:
@@ -217,7 +208,7 @@ def scroll(direction: Literal["up", "down"]) -> None:
     stroke = MouseStroke(
         MouseFlag.MOUSE_MOVE_RELATIVE, MouseButtonFlag.MOUSE_WHEEL, button_data, 0, 0
     )
-    interception.send_mouse(stroke)
+    interception.send(interception.mouse, stroke)
     time.sleep(0.025)
 
 
@@ -240,7 +231,7 @@ def key_down(key: str, delay: Optional[float | int] = None) -> None:
     """
     keycode = _get_keycode(key)
     stroke = KeyStroke(keycode, KeyFlag.KEY_DOWN)
-    interception.send_key(stroke)
+    interception.send(interception.keyboard, stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
@@ -261,7 +252,7 @@ def key_up(key: str, delay: Optional[float | int] = None) -> None:
     """
     keycode = _get_keycode(key)
     stroke = KeyStroke(keycode, KeyFlag.KEY_UP)
-    interception.send_key(stroke)
+    interception.send(interception.keyboard, stroke)
     time.sleep(delay or KEY_PRESS_DELAY)
 
 
@@ -274,7 +265,7 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     """
     button_state = _get_button_states(button, down=True)
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, button_state, 0, 0, 0)
-    interception.send_mouse(stroke)
+    interception.send(interception.mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
@@ -283,7 +274,7 @@ def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
     button_state = _get_button_states(button, down=False)
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, button_state, 0, 0, 0)
-    interception.send_mouse(stroke)
+    interception.send(interception.mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
@@ -328,7 +319,7 @@ def capture_keyboard() -> None:
     Filters out non `KEY_DOWN` events to not post the same capture twice.
     """
     context = Interception()
-    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
+    context.set_filter(is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
     print("Capturing keyboard presses, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -342,10 +333,8 @@ def capture_mouse() -> None:
     Filters out non `LEFT_BUTTON_DOWN` events to not post the same capture twice.
     """
     context = Interception()
-    context.set_filter(
-        context.is_mouse, FilterMouseButtonFlag.FILTER_MOUSE_LEFT_BUTTON_DOWN
-    )
-    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
+    context.set_filter(is_mouse, FilterMouseButtonFlag.FILTER_MOUSE_LEFT_BUTTON_DOWN)
+    context.set_filter(is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
     print("Intercepting mouse left clicks, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -377,29 +366,23 @@ def auto_capture_devices(
         if verbose:
             print(info)
 
-    mouse_listener = MouseListener(on_click=lambda *args: False)
-    key_listener = KeyListener(on_release=lambda *args: False)
-
-    for device in ("keyboard", "mouse"):
-        if (device == "keyboard" and not keyboard) or (device == "mouse" and not mouse):
+    num = 0 if keyboard else 10
+    while num < 20:
+        hwid: Optional[str] = interception.devices[num].get_HWID()
+        if hwid is None:
+            log(f"{num}: None")
+            num += 1
             continue
-        log(f"Trying {device} device numbers...")
-        stroke: Stroke
-        if device == "mouse":
-            listener, stroke, nums = mouse_listener, _TEST_MOUSE_STROKE, range(10, 20)
-        else:
-            listener, stroke, nums = key_listener, _TEST_KEY_STROKE, range(10)
 
-        listener.start()
-        for num in nums:
-            interception.send(num, stroke)
-            time.sleep(random.uniform(0.1, 0.3))
-            if listener.is_alive():
-                log(f"No success on {device} {num}...")
-                continue
-            log(f"Success on {device} {num}!")
-            set_devices(**{device: num})
-            break
+        log(f"{num}: {hwid[:60]}...")
+        if is_keyboard(num):
+            interception.keyboard = num
+            num = 10
+            if not mouse:
+                break
+            continue
+        interception.mouse = num
+        break
 
     log("Devices set.")
 
@@ -437,13 +420,18 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
     stop = _get_keycode(stop_button)
     try:
         while True:
-            device = context.wait()
-            stroke = context.receive(device)
+            device = context.await_input()
+            if device is None:
+                continue
 
-            if context.is_keyboard(device) and stroke.code == stop:
+            stroke = context.devices[device].receive()
+            if stroke is None:
+                continue
+
+            if isinstance(stroke, KeyStroke) and stroke.code == stop:
                 return
 
-            print(f"Received stroke {stroke} on mouse device {device}")
+            print(f"Received stroke {stroke} on device {device}")
             context.send(device, stroke)
     finally:
         context.destroy()

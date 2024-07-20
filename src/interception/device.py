@@ -105,7 +105,7 @@ class Device:
             ctypes.windll.kernel32.CloseHandle(self.event)
             self.handle = 0
 
-    def receive(self) -> Optional[Stroke]:
+    def receive(self) -> Optional[KeyStroke | MouseStroke]:
         """Receives the keystroke sent from this device.
 
         Must be the resulting device of a kernel32 `WaitForMultipleObjects` call to
