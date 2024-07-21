@@ -1,5 +1,5 @@
 # pyinterception
-This is a python **port** for [interception][c_ception], a low level input device driver.
+This is a python **port and wrapper** for [interception][c_ception], a low level input device driver.
 
 > The Interception API aims to build a portable programming interface that allows one to intercept and control a range of input devices.
 
