@@ -18,8 +18,6 @@ If you take a look at [KBDLLHOOKSTRUCT][kbdllhook], specifically the `flags` fie
 
 This flag will **always** be set when sending an input through the windows API and there is nothing you can do about it. Programs may not pick up on this flag through the `KBDLLHOOKSTRUCT`, but it certainly proves that the OS clearly differentiates between inputs. 
 
-Long story short, injected inputs actually have a `LowLevelKeyHookInjected` (0x10) flag. This flag will **always** be set when sending an Input with `SendInput` or the even older `mouse_event` and `keyb_event`. This flag is not at all hard to pick up for programs, if you have python3.7 and pyHook installed, you can try it yourself using this code:
-
 Why is this an issue? Well, it's isnt always one. If whatever you're sending inputs to currently works fine, and you are not worried about getting flagged by some sort of anti-cheat, then by all means its totally fine to stick to pyautogui / pydirectinput.
 At this point it is worth noting that alot of the more advanced anti-cheats including vanguard and some versions of EAC **will not boot** while the driver is loaded on your system, it is a very well known piece of software after all.
 And if you're going to ask me how to bypass that detection - write your own driver.
