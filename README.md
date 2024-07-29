@@ -26,6 +26,7 @@ And if you're going to ask me how to bypass that detection - write your own driv
 - Very simple interface inspired by pyautogui / pydirectinput, all the complicated interception communication is abstracted away.
 - Automatically adjusts the keyboard scancodes based on your current keyboard layout.
 - Very well documented if you ever want to try and implement additional functionality yourself.
+- Completely self-contained, no dependencies required!
 
 ## How to use?
 First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work. It's a very simple install.
