@@ -30,6 +30,7 @@ And if you're going to ask me how to bypass that detection - write your own driv
 ## Todo list:
 - Add support for **extended** keys
 - Add optional 'human' mouse movement (bezier curves?)
+
 Feel free to contribute, just make sure you try to stick to the current code style of the project :) 
 
 ## How to use?
