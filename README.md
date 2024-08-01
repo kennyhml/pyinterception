@@ -27,8 +27,8 @@ And if you're going to ask me how to bypass that detection - write your own driv
 - Automatically adjusts the keyboard scancodes based on your current keyboard layout.
 - Very well documented if you ever want to try and implement additional functionality yourself.
 - Completely self-contained, no dependencies required!
+- Supports extended and modified keys (shift, ctrl, alt)
 ## Todo list:
-- Add support for **extended** keys
 - Add optional 'human' mouse movement (bezier curves?)
 
 Feel free to contribute, just make sure you try to stick to the current code style of the project :) 
