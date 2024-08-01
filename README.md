@@ -23,11 +23,11 @@ At this point it is worth noting that alot of the more advanced anti-cheats incl
 And if you're going to ask me how to bypass that detection - write your own driver.
 
 ## Why use this port?
-- Very simple interface inspired by pyautogui / pydirectinput, all the complicated interception communication is abstracted away.
-- Automatically adjusts the keyboard scancodes based on your current keyboard layout.
-- Very well documented if you ever want to try and implement additional functionality yourself.
-- Completely self-contained, no dependencies required!
-- Supports extended and modified keys (shift, ctrl, alt)
+- Very simple interface inspired by pyautogui / pydirectinput, the low-level communication is abstracted away.
+- Dynamically obtains scancodes, thus doesnt depend on the order of your keyboard layout.
+- Well documented for anyone who is interested in implementing any functionality themselves.
+- Completely self-contained, no dependencies are required to use the library other than the driver itself!
+- Supports keys that are extended or require a shift / alt / ctrl modifier to work.
 ## Todo list:
 - Add optional 'human' mouse movement (bezier curves?)
 
