@@ -13,7 +13,7 @@ from ._consts import (
     MouseRolling,
     MouseButtonFlag,
 )
-from ._keycodes import KEYBOARD_MAPPING
+from ._keycodes import get_key_information
 from .interception import Interception, is_keyboard, is_mouse
 from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
@@ -212,6 +212,19 @@ def scroll(direction: Literal["up", "down"]) -> None:
     time.sleep(0.025)
 
 
+def _send_with_mods(stroke: KeyStroke, **kwarg_mods) -> None:
+
+    mods: list[str] = [key for key, v in kwarg_mods.items() if v]
+
+    for mod in mods:
+        key_down(mod, 0)
+
+    interception.send(interception.keyboard, stroke)
+
+    for mod in mods:
+        key_up(mod, 0)
+
+
 @requires_driver
 def key_down(key: str, delay: Optional[float | int] = None) -> None:
     """Updates the state of the given key to be `down`.
@@ -229,10 +242,14 @@ def key_down(key: str, delay: Optional[float | int] = None) -> None:
     ### Raises:
     `UnknownKeyError` if the given key is not supported.
     """
-    keycode = _get_keycode(key)
-    stroke = KeyStroke(keycode, KeyFlag.KEY_DOWN)
-    interception.send(interception.keyboard, stroke)
-    time.sleep(delay or KEY_PRESS_DELAY)
+    data = get_key_information(key)
+
+    stroke = KeyStroke(data.scan_code, KeyFlag.KEY_DOWN)
+    if data.is_extended:
+        stroke.flags |= KeyFlag.KEY_E0
+
+    _send_with_mods(stroke, ctrl=data.ctrl, alt=data.alt, shift=data.shift)
+    time.sleep(delay if delay is not None else KEY_PRESS_DELAY)
 
 
 @requires_driver
@@ -250,10 +267,14 @@ def key_up(key: str, delay: Optional[float | int] = None) -> None:
     ### Raises:
     `UnknownKeyError` if the given key is not supported.
     """
-    keycode = _get_keycode(key)
-    stroke = KeyStroke(keycode, KeyFlag.KEY_UP)
-    interception.send(interception.keyboard, stroke)
-    time.sleep(delay or KEY_PRESS_DELAY)
+    data = get_key_information(key)
+
+    stroke = KeyStroke(data.scan_code, KeyFlag.KEY_UP)
+    if data.is_extended:
+        stroke.flags |= KeyFlag.KEY_E0
+
+    _send_with_mods(stroke, ctrl=data.ctrl, alt=data.alt, shift=data.shift)
+    time.sleep(delay if delay is not None else KEY_PRESS_DELAY)
 
 
 @requires_driver
@@ -377,12 +398,12 @@ def auto_capture_devices(
         log(f"{num}: {hwid[:60]}...")
         if is_keyboard(num):
             interception.keyboard = num
-            num = 10
+            num += 1
             if not mouse:
                 break
             continue
         interception.mouse = num
-        break
+        num += 1
 
     log("Devices set.")
 
@@ -417,7 +438,7 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
 
     Remember to destroy the context in any case afterwards. Otherwise events
     will continue to be intercepted!"""
-    stop = _get_keycode(stop_button)
+    stop = get_key_information(stop_button).scan_code
     try:
         while True:
             device = context.await_input()
@@ -435,13 +456,6 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
             context.send(device, stroke)
     finally:
         context.destroy()
-
-
-def _get_keycode(key: str) -> int:
-    try:
-        return KEYBOARD_MAPPING[key]
-    except KeyError:
-        raise exceptions.UnknownKeyError(key)
 
 
 def _get_button_states(button: str, *, down: bool) -> int:
