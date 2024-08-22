@@ -3,6 +3,8 @@ import random
 import time
 from contextlib import contextmanager
 from typing import Literal, Optional
+from math import sqrt
+from pyclick.humancurve import HumanCurve
 
 from . import _utils, exceptions
 from ._consts import (
@@ -43,6 +45,63 @@ def requires_driver(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+def find_duration(x: int, y: int, MOVE_SPEED: int) -> float:
+    """Calculates the duration required to move the mouse to a given (x, y) coordinate
+    based on the current position and a specified move speed.
+
+    This function ensures a minimum duration of 0.15 seconds to avoid
+    overly fast mouse movements that may not be human-like.
+
+    ### Parameters:
+    - `x`: The target x-coordinate.
+    - `y`: The target y-coordinate.
+    - `MOVE_SPEED`: The speed at which the mouse should move.
+
+    ### Returns:
+    - The calculated duration for the mouse movement.
+    """
+    current_x, current_y = mouse_position()
+    return max(0.15, sqrt((x - current_x) ** 2 + (y - current_y) ** 2) / MOVE_SPEED)
+
+@requires_driver
+def move_to_curved(x: int | tuple[int, int], y: Optional[int] = None, MOVE_SPEED: int = 600) -> None:
+    """Moves the mouse to a given absolute (x, y) location on the screen along a curved path.
+
+    The parameters can be passed as a tuple-like `(x, y)` coordinate or
+    separately as `x` and `y` coordinates. The movement speed can also be
+    adjusted through the `MOVE_SPEED` parameter.
+
+    The function calculates a smooth, human-like curve using the `HumanCurve`
+    utility, and the mouse moves along this curve with a delay at each point
+    to simulate a natural mouse movement.
+
+    ### Parameters:
+    - `x`: The target x-coordinate.
+    - `y`: The target y-coordinate.
+    - `MOVE_SPEED`: The speed at which the mouse should move.
+
+    ### Examples:
+    ```py
+    # Move to a point (x, y) along a curve with the default speed
+    interception.move_to_curved(800, 1200)
+
+    # Move to a point using a tuple-like coordinate and custom speed
+    target_location = (1200, 300)
+    interception.move_to_curved(target_location, MOVE_SPEED=800)
+    ```
+    """
+    fromPoint = mouse_position()
+    humanCurve = HumanCurve(fromPoint, (x, y))
+    duration = find_duration(x, y, MOVE_SPEED)
+
+    PAUSE_TIME = duration / len(humanCurve.points)
+    for x, y in humanCurve.points:
+        x, y = _utils.normalize(x, y)
+        x, y = _utils.to_interception_coordinate(x, y)
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
+        interception.send(interception.mouse, stroke)
+        time.sleep(PAUSE_TIME)
 
 
 @requires_driver
