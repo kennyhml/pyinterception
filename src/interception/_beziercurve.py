@@ -49,6 +49,17 @@ def curvePoints(n: int, points: list[tuple[float, float]]) -> list[tuple[float, 
         curvePoints.append(bernstein_polynomial(t))  # Calculate the curve point for this t
     return curvePoints
 
+def easeOutQuad(n):  # type: (Union[int, float]) -> Union[int, float]
+    """Starts fast and decelerates to stop. (Quadratic function.)
+
+    Args:
+      n (int, float): The time progress, starting at 0.0 and ending at 1.0.
+
+    Returns:
+      (float) The line progress, starting at 0.0 and ending at 1.0. Suitable for passing to getPointOnLine().
+    """
+    return -n * (n - 2)
+
 def find_duration(x: int, y: int, current_points, MOVE_SPEED: int) -> float:
     """Calculates the duration required to move the mouse to a given (x, y) coordinate
     based on the current position and a specified move speed.

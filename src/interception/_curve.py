@@ -1,7 +1,6 @@
 import numpy as np
 from . import _beziercurve
 import random
-from pytweening import easeOutQuad
 
 OFFSET_X = 100
 OFFSET_Y = 100
@@ -70,7 +69,7 @@ def generate_curve(x: int, y: int, current_points: tuple[int, int]) -> list[tupl
         """Smooths the curve by applying easing to the points."""
         res = []
         for i in range(100):
-            index = int(easeOutQuad(float(i) / (100 - 1)) * (len(points) - 1))
+            index = int(_beziercurve.easeOutQuad(float(i) / (100 - 1)) * (len(points) - 1))
             res.append(points[index])
         return res
     
