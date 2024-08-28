@@ -3,10 +3,8 @@ import random
 import time
 from contextlib import contextmanager
 from typing import Literal, Optional
-from math import sqrt
-from pyclick.humancurve import HumanCurve
-
 from . import _utils, exceptions
+
 from ._consts import (
     FilterKeyFlag,
     FilterMouseButtonFlag,
@@ -15,6 +13,8 @@ from ._consts import (
     MouseRolling,
     MouseButtonFlag,
 )
+from . import _curve
+from . import _beziercurve
 from ._keycodes import get_key_information
 from .interception import Interception, is_keyboard, is_mouse
 from .strokes import KeyStroke, MouseStroke
@@ -46,63 +46,45 @@ def requires_driver(func):
 
     return wrapper
 
-def find_duration(x: int, y: int, MOVE_SPEED: int) -> float:
-    """Calculates the duration required to move the mouse to a given (x, y) coordinate
-    based on the current position and a specified move speed.
-
-    This function ensures a minimum duration of 0.15 seconds to avoid
-    overly fast mouse movements that may not be human-like.
-
-    ### Parameters:
-    - `x`: The target x-coordinate.
-    - `y`: The target y-coordinate.
-    - `MOVE_SPEED`: The speed at which the mouse should move.
-
-    ### Returns:
-    - The calculated duration for the mouse movement.
-    """
-    current_x, current_y = mouse_position()
-    return max(0.15, sqrt((x - current_x) ** 2 + (y - current_y) ** 2) / MOVE_SPEED)
-
 @requires_driver
 def move_to_curved(x: int | tuple[int, int], y: Optional[int] = None, MOVE_SPEED: int = 600) -> None:
-    """Moves the mouse to a given absolute (x, y) location on the screen along a curved path.
+    """Moves the mouse to a given (x, y) location on the screen using a smooth curved path.
 
-    The parameters can be passed as a tuple-like `(x, y)` coordinate or
-    separately as `x` and `y` coordinates. The movement speed can also be
-    adjusted through the `MOVE_SPEED` parameter.
-
-    The function calculates a smooth, human-like curve using the `HumanCurve`
-    utility, and the mouse moves along this curve with a delay at each point
-    to simulate a natural mouse movement.
+    This function calculates a bezier curve path from the current mouse position to the target
+    location and moves the mouse along this path with a specified speed.
 
     ### Parameters:
-    - `x`: The target x-coordinate.
-    - `y`: The target y-coordinate.
-    - `MOVE_SPEED`: The speed at which the mouse should move.
+    - `x` (int | tuple[int, int]): The x-coordinate of the target location or a tuple-like `(x, y)` coordinate.
+    - `y` (Optional[int]): The y-coordinate of the target location (if `x` is not a tuple).
+    - `MOVE_SPEED` (int): The speed of the mouse movement in pixels per second (default is 600).
+
+    ### Notes:
+    - The function smoothly moves the mouse using a bezier curve path, which makes the movement appear more human-like.
+    - The speed of the movement can be controlled using the `MOVE_SPEED` parameter, and a delay is calculated between each step of the movement.
 
     ### Examples:
     ```py
-    # Move to a point (x, y) along a curve with the default speed
-    interception.move_to_curved(800, 1200)
+    # Move mouse to (800, 600) at a speed of 600 pixels per second
+    move_to_curved(800, 600)
 
-    # Move to a point using a tuple-like coordinate and custom speed
-    target_location = (1200, 300)
-    interception.move_to_curved(target_location, MOVE_SPEED=800)
+    # Move mouse to a target location specified as a tuple
+    target = (1200, 300)
+    move_to_curved(target)
     ```
     """
-    fromPoint = mouse_position()
-    humanCurve = HumanCurve(fromPoint, (x, y))
-    duration = find_duration(x, y, MOVE_SPEED)
+    
+    current_points = _utils.get_cursor_pos()
+    points = _curve.generate_curve(x, y, current_points)
+    duration = _beziercurve.find_duration(x, y, current_points, MOVE_SPEED)
+    PAUSE_TIME = duration / len(points)
 
-    PAUSE_TIME = duration / len(humanCurve.points)
-    for x, y in humanCurve.points:
+    for x, y in points:
         x, y = _utils.normalize(x, y)
         x, y = _utils.to_interception_coordinate(x, y)
+
         stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
         interception.send(interception.mouse, stroke)
         time.sleep(PAUSE_TIME)
-
 
 @requires_driver
 def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
