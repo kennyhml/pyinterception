@@ -8,6 +8,15 @@ class DriverNotFoundError(Exception):
         )
 
 
+class PyClickNotInstalled(Exception):
+    """Raised when attempting to use human curve functionality without pyclick."""
+
+    def __str__(self) -> str:
+        return (
+            "PyClick must be installed to generate human curves (pip install pyclick)."
+        )
+
+
 class UnknownKeyError(LookupError):
     """Raised when attemping to press a key that doesnt exist"""
 
