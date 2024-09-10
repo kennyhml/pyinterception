@@ -1,8 +1,9 @@
 import functools
-import random
 import time
 from contextlib import contextmanager
 from typing import Literal, Optional
+
+from .beziercurve import BezierCurveParams
 
 from . import _utils, exceptions
 from ._consts import (
@@ -17,6 +18,15 @@ from ._keycodes import get_key_information
 from .interception import Interception, is_keyboard, is_mouse
 from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
+
+try:
+    from pyclick.humancurve import HumanCurve
+except ImportError:
+
+    class HumanCurve:  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs) -> None:
+            raise exceptions.PyClickNotInstalled
+
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
 # I want to avoid raising the error on import and instead raise it when attempting to call
@@ -46,14 +56,25 @@ def requires_driver(func):
 
 
 @requires_driver
-def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
+def move_to(
+    x: int | tuple[int, int],
+    y: Optional[int] = None,
+    curve_params: Optional[BezierCurveParams] = None,
+    *,
+    overrule_global_curve: bool = False,
+) -> None:
     """Moves to a given absolute (x, y) location on the screen.
 
-    The paramters can be passed as a tuple-like `(x, y)` coordinate or
-    seperately as `x` and `y` coordinates, it will be parsed accordingly.
+    Parameters
+    ----------
+    curve_params :class:`Optional[HumanCurve]`:
+        An optional container to define the curve parameters, pyclick is required.
 
-    Due to conversion to the coordinate system the interception driver
-    uses, an offset of 1 pixel in either x or y axis may occur or not.
+    overrule_global_curve :class:`bool`:
+        Whether a global curve should not be used despite being set. False by default.
+
+    The coordinates can be passed as a tuple-like `(x, y)` coordinate or
+    seperately as `x` and `y` coordinates, it will be parsed accordingly.
 
     ### Examples:
     ```py
@@ -66,11 +87,21 @@ def move_to(x: int | tuple[int, int], y: Optional[int] = None) -> None:
     interception.move_to(target_location)
     ```
     """
-    x, y = _utils.normalize(x, y)
-    x, y = _utils.to_interception_coordinate(x, y)
 
-    stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
-    interception.send(interception.mouse, stroke)
+    if curve_params is None:
+        x, y = _utils.to_interception_coordinate(*_utils.normalize(x, y))
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
+        interception.send(interception.mouse, stroke)
+        return
+
+    curve: HumanCurve = HumanCurve(mouse_position(), _utils.normalize(x, y))
+    for point in curve.points:
+        # Tempts to use recursion, but recursion stack limit would not allow it.
+        # Iterative solution is harder to read than this imo.
+        x, y = _utils.to_interception_coordinate(*_utils.normalize(point))
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
+        interception.send(interception.mouse, stroke)
+        time.sleep(0.01)
 
 
 @requires_driver
@@ -192,7 +223,7 @@ def write(term: str, interval: int | float = 0.05) -> None:
     interval :class:`int | float`:
         The interval between the different characters, default 0.05.
     """
-    for c in term.lower():
+    for c in term:
         press(c)
         time.sleep(interval)
 
@@ -405,7 +436,7 @@ def auto_capture_devices(
         interception.mouse = num
         num += 1
 
-    log("Devices set.")
+    log(f"Devices set. Mouse: {interception.mouse}, keyboard: {interception.keyboard}")
 
 
 @requires_driver
