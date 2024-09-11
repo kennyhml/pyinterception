@@ -28,8 +28,7 @@ And if you're going to ask me how to bypass that detection - write your own driv
 - Well documented for anyone who is interested in implementing any functionality themselves.
 - Completely self-contained, no dependencies are required to use the library other than the driver itself!
 - Supports keys that are extended or require a shift / alt / ctrl modifier to work.
-## Todo list:
-- Add optional 'human' mouse movement (bezier curves?)
+- Supports 'human' movement by generating configurable [Bezier Curves][curve] - requires [PyClick][pyclick] to be installed.
 
 Feel free to contribute, just make sure you try to stick to the current code style of the project :) 
 
@@ -53,4 +52,6 @@ interception.click(120, 160, button="right", delay=1)
 Thank you for taking your time to read the introduction o7
 
 [c_ception]: https://github.com/oblitum/Interception
+[pyclick]: https://github.com/patrikoss/pyclick
+[curve]: https://en.wikipedia.org/wiki/B%C3%A9zier_curve
 [kbdllhook]: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-kbdllhookstruct?redirectedfrom=MSDN
