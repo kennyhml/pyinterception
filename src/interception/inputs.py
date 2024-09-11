@@ -15,15 +15,7 @@ from .constants import (
 from .interception import Interception
 from .strokes import KeyStroke, MouseStroke
 
-# try to initialize interception, if it fails simply remember that it failed to initalize.
-# I want to avoid raising the error on import and instead raise it when attempting to call
-# functionality that relies on the driver, this also still allows access to non driver stuff
-try:
-    _g_context = Interception()
-    INTERCEPTION_INSTALLED = True
-except Exception:
-    INTERCEPTION_INSTALLED = False
-
+_g_context = Interception()
 MouseButton: TypeAlias = Literal["left", "right", "middle", "mouse4", "mouse5"]
 
 MOUSE_BUTTON_DELAY = 0.03
@@ -36,7 +28,7 @@ def requires_driver(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if not INTERCEPTION_INSTALLED:
+        if not _g_context.valid:
             raise exceptions.DriverNotFoundError
         return func(*args, **kwargs)
 

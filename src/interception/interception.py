@@ -69,6 +69,10 @@ class Interception:
     def devices(self) -> list[Device]:
         return self._devices
 
+    @property
+    def valid(self) -> bool:
+        return len(self._devices) > 0
+
     def destroy(self) -> None:
         for device in self._devices:
             device.destroy()
