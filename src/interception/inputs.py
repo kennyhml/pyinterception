@@ -3,7 +3,7 @@ import time
 from contextlib import contextmanager
 from typing import Literal, Optional
 
-from . import _utils, exceptions, beziercurve
+from . import _utils, _keycodes, exceptions, beziercurve
 from .constants import (
     FilterKeyFlag,
     FilterMouseButtonFlag,
@@ -12,7 +12,6 @@ from .constants import (
     MouseRolling,
     MouseButtonFlag,
 )
-from ._keycodes import get_key_information
 from .interception import Interception, is_keyboard, is_mouse
 from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
@@ -263,7 +262,7 @@ def key_down(key: str, delay: Optional[float | int] = None) -> None:
     ### Raises:
     `UnknownKeyError` if the given key is not supported.
     """
-    data = get_key_information(key)
+    data = _keycodes.get_key_information(key)
 
     stroke = KeyStroke(data.scan_code, KeyFlag.KEY_DOWN)
     if data.is_extended:
@@ -288,7 +287,7 @@ def key_up(key: str, delay: Optional[float | int] = None) -> None:
     ### Raises:
     `UnknownKeyError` if the given key is not supported.
     """
-    data = get_key_information(key)
+    data = _keycodes.get_key_information(key)
 
     stroke = KeyStroke(data.scan_code, KeyFlag.KEY_UP)
     if data.is_extended:
@@ -459,7 +458,7 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
 
     Remember to destroy the context in any case afterwards. Otherwise events
     will continue to be intercepted!"""
-    stop = get_key_information(stop_button).scan_code
+    stop = _keycodes.get_key_information(stop_button).scan_code
     try:
         while True:
             device = context.await_input()
