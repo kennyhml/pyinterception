@@ -1,7 +1,7 @@
 import functools
 import time
 from contextlib import contextmanager
-from typing import Literal, Optional
+from typing import Literal, Optional, TypeAlias
 
 from . import _keycodes, _utils, beziercurve, exceptions
 from .constants import (
@@ -14,7 +14,6 @@ from .constants import (
 )
 from .interception import Interception
 from .strokes import KeyStroke, MouseStroke
-from .types import MouseButton
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
 # I want to avoid raising the error on import and instead raise it when attempting to call
@@ -25,6 +24,7 @@ try:
 except Exception:
     INTERCEPTION_INSTALLED = False
 
+MouseButton: TypeAlias = Literal["left", "right", "middle", "mouse4", "mouse5"]
 
 MOUSE_BUTTON_DELAY = 0.03
 KEY_PRESS_DELAY = 0.025
@@ -125,7 +125,7 @@ def mouse_position() -> tuple[int, int]:
 def click(
     x: Optional[int | tuple[int, int]] = None,
     y: Optional[int] = None,
-    button: MouseButton | str = "left",
+    button: MouseButton = "left",
     clicks: int = 1,
     interval: int | float = 0.1,
     delay: int | float = 0.3,
