@@ -3,19 +3,18 @@ import time
 from contextlib import contextmanager
 from typing import Literal, Optional
 
-from . import _utils, _keycodes, exceptions, beziercurve
+from . import _keycodes, _utils, beziercurve, exceptions
 from .constants import (
     FilterKeyFlag,
     FilterMouseButtonFlag,
     KeyFlag,
+    MouseButtonFlag,
     MouseFlag,
     MouseRolling,
-    MouseButtonFlag,
 )
-from .interception import Interception, is_keyboard, is_mouse
+from .interception import Interception
 from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
-
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
 # I want to avoid raising the error on import and instead raise it when attempting to call
@@ -360,7 +359,7 @@ def capture_keyboard() -> None:
     Filters out non `KEY_DOWN` events to not post the same capture twice.
     """
     context = Interception()
-    context.set_filter(is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
+    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
     print("Capturing keyboard presses, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -374,8 +373,10 @@ def capture_mouse() -> None:
     Filters out non `LEFT_BUTTON_DOWN` events to not post the same capture twice.
     """
     context = Interception()
-    context.set_filter(is_mouse, FilterMouseButtonFlag.FILTER_MOUSE_LEFT_BUTTON_DOWN)
-    context.set_filter(is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
+    context.set_filter(
+        context.is_mouse, FilterMouseButtonFlag.FILTER_MOUSE_LEFT_BUTTON_DOWN
+    )
+    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
     print("Intercepting mouse left clicks, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -416,7 +417,7 @@ def auto_capture_devices(
             continue
 
         log(f"{num}: {hwid[:60]}...")
-        if is_keyboard(num):
+        if interception.is_keyboard(num):
             interception.keyboard = num
             num += 1
             if not mouse:

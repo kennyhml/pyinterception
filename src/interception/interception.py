@@ -51,7 +51,7 @@ class Interception:
 
     @mouse.setter
     def mouse(self, num: int) -> None:
-        if is_invalid(num) or not is_mouse(num):
+        if self.is_invalid(num) or not self.is_mouse(num):
             raise ValueError(f"{num} mouse number does not match (10 <= num <= 19).")
         self._using_mouse = num
 
@@ -61,7 +61,7 @@ class Interception:
 
     @keyboard.setter
     def keyboard(self, num: int) -> None:
-        if is_invalid(num) or not is_keyboard(num):
+        if self.is_invalid(num) or not self.is_keyboard(num):
             raise ValueError(f"{num} keyboard number does not match (0 <= num <= 9).")
         self._using_keyboard = num
 
@@ -87,7 +87,7 @@ class Interception:
             )
             hevent = ctypes.windll.kernel32.CreateEventA(0, 1, 0, 0)
 
-            device = Device(hdevice, hevent, is_keyboard=is_keyboard(num))
+            device = Device(hdevice, hevent, is_keyboard=self.is_keyboard(num))
             self._devices.append(device)
             self._event_handles[num] = hevent
 
@@ -111,17 +111,17 @@ class Interception:
     def send(self, device: int, stroke: Stroke):
         return self._devices[device].send(stroke)
 
+    @staticmethod
+    def is_keyboard(device: int):
+        """Determines whether a device is a keyboard based on it's index"""
+        return 0 <= device <= MAX_KEYBOARD - 1
 
-def is_keyboard(device: int):
-    """Determines whether a device is a keyboard based on it's index"""
-    return 0 <= device <= MAX_KEYBOARD - 1
+    @staticmethod
+    def is_mouse(device: int):
+        """Determines whether a device is a mouse based on it's index"""
+        return MAX_KEYBOARD <= device <= (MAX_KEYBOARD + MAX_MOUSE) - 1
 
-
-def is_mouse(device: int):
-    """Determines whether a device is a mouse based on it's index"""
-    return MAX_KEYBOARD <= device <= (MAX_KEYBOARD + MAX_MOUSE) - 1
-
-
-def is_invalid(device: int):
-    """Determines whether a device is invalid based on it's index"""
-    return not 0 <= device <= 19
+    @staticmethod
+    def is_invalid(device: int):
+        """Determines whether a device is invalid based on it's index"""
+        return not 0 <= device <= 19
