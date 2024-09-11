@@ -19,7 +19,7 @@ from .strokes import KeyStroke, MouseStroke
 # I want to avoid raising the error on import and instead raise it when attempting to call
 # functionality that relies on the driver, this also still allows access to non driver stuff
 try:
-    interception = Interception()
+    _g_context = Interception()
     INTERCEPTION_INSTALLED = True
 except Exception:
     INTERCEPTION_INSTALLED = False
@@ -79,7 +79,7 @@ def move_to(
     if curve_params is None:
         x, y = _utils.to_interception_coordinate(*_utils.normalize(x, y))
         stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
-        interception.send(interception.mouse, stroke)
+        _g_context.send(_g_context.mouse, stroke)
         return
 
     curve = beziercurve.HumanCurve(mouse_position(), _utils.normalize(x, y))
@@ -88,7 +88,7 @@ def move_to(
         # Iterative solution is harder to read than this imo.
         x, y = _utils.to_interception_coordinate(*_utils.normalize(point))
         stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
-        interception.send(interception.mouse, stroke)
+        _g_context.send(_g_context.mouse, stroke)
         time.sleep(0.01)
 
 
@@ -110,7 +110,7 @@ def move_relative(x: int = 0, y: int = 0) -> None:
     >>> 400, 400
     """
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, x, y)
-    interception.send(interception.mouse, stroke)
+    _g_context.send(_g_context.mouse, stroke)
 
 
 def mouse_position() -> tuple[int, int]:
@@ -227,7 +227,7 @@ def scroll(direction: Literal["up", "down"]) -> None:
     stroke = MouseStroke(
         MouseFlag.MOUSE_MOVE_RELATIVE, MouseButtonFlag.MOUSE_WHEEL, button_data, 0, 0
     )
-    interception.send(interception.mouse, stroke)
+    _g_context.send(_g_context.mouse, stroke)
     time.sleep(0.025)
 
 
@@ -238,7 +238,7 @@ def _send_with_mods(stroke: KeyStroke, **kwarg_mods) -> None:
     for mod in mods:
         key_down(mod, 0)
 
-    interception.send(interception.keyboard, stroke)
+    _g_context.send(_g_context.keyboard, stroke)
 
     for mod in mods:
         key_up(mod, 0)
@@ -305,7 +305,7 @@ def mouse_down(button: MouseButton, delay: Optional[float] = None) -> None:
     """
     button_state = _get_button_states(button, down=True)
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, button_state, 0, 0, 0)
-    interception.send(interception.mouse, stroke)
+    _g_context.send(_g_context.mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
@@ -314,7 +314,7 @@ def mouse_up(button: MouseButton, delay: Optional[float] = None) -> None:
     """Releases a mouse button."""
     button_state = _get_button_states(button, down=False)
     stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, button_state, 0, 0, 0)
-    interception.send(interception.mouse, stroke)
+    _g_context.send(_g_context.mouse, stroke)
     time.sleep(delay or MOUSE_BUTTON_DELAY)
 
 
@@ -410,23 +410,23 @@ def auto_capture_devices(
 
     num = 0 if keyboard else 10
     while num < 20:
-        hwid: Optional[str] = interception.devices[num].get_HWID()
+        hwid: Optional[str] = _g_context.devices[num].get_HWID()
         if hwid is None:
             log(f"{num}: None")
             num += 1
             continue
 
         log(f"{num}: {hwid[:60]}...")
-        if interception.is_keyboard(num):
-            interception.keyboard = num
+        if _g_context.is_keyboard(num):
+            _g_context.keyboard = num
             num += 1
             if not mouse:
                 break
             continue
-        interception.mouse = num
+        _g_context.mouse = num
         num += 1
 
-    log(f"Devices set. Mouse: {interception.mouse}, keyboard: {interception.keyboard}")
+    log(f"Devices set. Mouse: {_g_context.mouse}, keyboard: {_g_context.keyboard}")
 
 
 @requires_driver
@@ -437,20 +437,20 @@ def set_devices(keyboard: Optional[int] = None, mouse: Optional[int] = None) -> 
     If a device out of range is passed, the context will raise a `ValueError`.
     """
     if keyboard is not None:
-        interception.keyboard = keyboard
+        _g_context.keyboard = keyboard
 
     if mouse is not None:
-        interception.mouse = mouse
+        _g_context.mouse = mouse
 
 
 @requires_driver
 def get_mouse() -> int:
-    return interception.mouse
+    return _g_context.mouse
 
 
 @requires_driver
 def get_keyboard() -> int:
-    return interception.keyboard
+    return _g_context.keyboard
 
 
 def _listen_to_events(context: Interception, stop_button: str) -> None:
