@@ -1,5 +1,6 @@
 import functools
 import time
+import random
 from contextlib import contextmanager
 from typing import Literal, Optional, TypeAlias
 
@@ -81,6 +82,9 @@ def move_to(
         x, y = _utils.to_interception_coordinate(*_utils.normalize(point))
         stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
         _g_context.send(_g_context.mouse, stroke)
+
+        if random.uniform(0, 1) > 0.75:
+            time.sleep(random.uniform(0.005, 0.0010))
 
 
 @requires_driver
