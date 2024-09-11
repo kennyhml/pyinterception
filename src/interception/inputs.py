@@ -89,7 +89,6 @@ def move_to(
         x, y = _utils.to_interception_coordinate(*_utils.normalize(point))
         stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
         _g_context.send(_g_context.mouse, stroke)
-        time.sleep(0.01)
 
 
 @requires_driver
