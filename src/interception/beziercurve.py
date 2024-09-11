@@ -1,5 +1,16 @@
 from dataclasses import dataclass
 from typing import Callable, Optional
+from . import exceptions
+
+try:
+    from pyclick.humancurve import HumanCurve  # type: ignore[import]
+except ImportError:
+
+    class HumanCurve:  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs) -> None:
+            # If pyclick isnt installed this dummy class will be initialized instead,
+            # so just use that to throw the exception.
+            raise exceptions.PyClickNotInstalled
 
 
 @dataclass

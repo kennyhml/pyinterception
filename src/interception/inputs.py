@@ -3,10 +3,8 @@ import time
 from contextlib import contextmanager
 from typing import Literal, Optional
 
-from .beziercurve import BezierCurveParams
-
-from . import _utils, exceptions
-from ._consts import (
+from . import _utils, exceptions, beziercurve
+from .constants import (
     FilterKeyFlag,
     FilterMouseButtonFlag,
     KeyFlag,
@@ -18,14 +16,6 @@ from ._keycodes import get_key_information
 from .interception import Interception, is_keyboard, is_mouse
 from .strokes import KeyStroke, MouseStroke
 from .types import MouseButton
-
-try:
-    from pyclick.humancurve import HumanCurve
-except ImportError:
-
-    class HumanCurve:  # type: ignore[no-redef]
-        def __init__(self, *args, **kwargs) -> None:
-            raise exceptions.PyClickNotInstalled
 
 
 # try to initialize interception, if it fails simply remember that it failed to initalize.
@@ -59,7 +49,7 @@ def requires_driver(func):
 def move_to(
     x: int | tuple[int, int],
     y: Optional[int] = None,
-    curve_params: Optional[BezierCurveParams] = None,
+    curve_params: Optional[beziercurve.BezierCurveParams] = None,
     *,
     overrule_global_curve: bool = False,
 ) -> None:
@@ -94,7 +84,7 @@ def move_to(
         interception.send(interception.mouse, stroke)
         return
 
-    curve: HumanCurve = HumanCurve(mouse_position(), _utils.normalize(x, y))
+    curve = beziercurve.HumanCurve(mouse_position(), _utils.normalize(x, y))
     for point in curve.points:
         # Tempts to use recursion, but recursion stack limit would not allow it.
         # Iterative solution is harder to read than this imo.
