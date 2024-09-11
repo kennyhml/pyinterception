@@ -22,3 +22,15 @@ class BezierCurveParams:
     distortion_frequency: float = 0.5
     tween: Optional[Callable[[None], None]] = None
     target_points: int = 100
+
+
+_g_params: Optional[BezierCurveParams] = None
+
+
+def set_default_params(params: BezierCurveParams) -> None:
+    global _g_params
+    _g_params = params
+
+
+def get_default_params() -> Optional[BezierCurveParams]:
+    return _g_params

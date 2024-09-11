@@ -42,7 +42,7 @@ def move_to(
     y: Optional[int] = None,
     curve_params: Optional[beziercurve.BezierCurveParams] = None,
     *,
-    overrule_global_curve: bool = False,
+    allow_global_params: bool = True,
 ) -> None:
     """Moves to a given absolute (x, y) location on the screen.
 
@@ -51,8 +51,8 @@ def move_to(
     curve_params :class:`Optional[HumanCurve]`:
         An optional container to define the curve parameters, pyclick is required.
 
-    overrule_global_curve :class:`bool`:
-        Whether a global curve should not be used despite being set. False by default.
+    allow_global_params :class:`bool`:
+        Whether the global curve params should be used when set. True by default.
 
     The coordinates can be passed as a tuple-like `(x, y)` coordinate or
     seperately as `x` and `y` coordinates, it will be parsed accordingly.
@@ -70,6 +70,9 @@ def move_to(
     """
 
     if curve_params is None:
+        if allow_global_params and (params := beziercurve.get_default_params()):
+            return move_to(x, y, params)
+
         x, y = _utils.to_interception_coordinate(*_utils.normalize(x, y))
         stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
         _g_context.send(_g_context.mouse, stroke)
