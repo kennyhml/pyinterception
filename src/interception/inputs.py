@@ -230,7 +230,6 @@ def scroll(direction: Literal["up", "down"]) -> None:
 
 
 def _send_with_mods(stroke: KeyStroke, **kwarg_mods) -> None:
-
     mods: list[str] = [key for key, v in kwarg_mods.items() if v]
 
     for mod in mods:
@@ -358,6 +357,7 @@ def capture_keyboard() -> None:
     """
     context = Interception()
     context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
+    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_UP)
     print("Capturing keyboard presses, press ESC to quit.")
 
     _listen_to_events(context, "esc")
@@ -457,7 +457,7 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
 
     Remember to destroy the context in any case afterwards. Otherwise events
     will continue to be intercepted!"""
-    stop = _keycodes.get_key_information(stop_button).scan_code
+    stop = _keycodes.get_key_information(stop_button)
     try:
         while True:
             device = context.await_input()
@@ -468,10 +468,17 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
             if stroke is None:
                 continue
 
-            if isinstance(stroke, KeyStroke) and stroke.code == stop:
+            if isinstance(stroke, KeyStroke) and stroke.code == stop.scan_code:
                 return
 
-            print(f"Received stroke {stroke} on device {device}")
+            # Only print the stroke if it is a key down stroke, that way we dont
+            # have to filter the context for the strokes which would lead to issues
+            # in passing the intercepted stroke on.
+            # See https://github.com/kennyhml/pyinterception/issues/32#issuecomment-2332565307
+            if (isinstance(stroke, KeyStroke) and stroke.flags == KeyFlag.KEY_DOWN) or (
+                isinstance(stroke, MouseStroke) and stroke.flags == MouseButtonFlag.MOUSE_LEFT_BUTTON_DOWN
+            ):
+                print(f"Received stroke {stroke} on device {device}")
             context.send(device, stroke)
     finally:
         context.destroy()
