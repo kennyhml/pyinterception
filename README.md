@@ -32,7 +32,7 @@ And if you're going to ask me how to bypass that detection - write your own driv
 
 Feel free to contribute, just make sure you try to stick to the current code style of the project :) 
 
-## How to use?
+## How is it used?
 First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work. It's a very simple install.
 
 Now, once you have all of that set up, you can go ahead and import `interception`. 
@@ -51,6 +51,37 @@ interception.click(120, 160, button="right", delay=1)
 ```
 Thank you for taking your time to read the introduction o7
 
+## Human Mouse Movement
+Some people may need the library to move the mouse in a more 'human' fashion to be less vulnerable to heuristic input detection.
+
+[PyClick][pyclick] already offers a great way to create custom Bezier Curves, so the library just makes use of that. To avoid bloat for the people who
+do not care about this functionality, PyClick must be installed manually if you want to use it.
+
+First create your Bezier Curve parameters container. You can either pass the params to `move_to` calls individually, or set them globally.
+```py
+from interception import beziercurve
+
+curve_params = beziercurve.BezierCurveParams()
+
+# Uses a bezier curve created with the specified parameters
+interception.move_to(960, 540, params)
+
+# Does not use a bezier curve, instead 'warps' to the location
+interception.move_to(960, 540)
+
+beziercurve.set_default_params(params)
+
+# Uses the bezier curve parameters we just declared as default
+interception.move_to(960, 540)
+
+# Overrules the default bezier curve parameters and 'warps' instead
+interception.move_to(960, 540, allow_global_params=False)
+```
+
+The resulting mouse movements look something like this (with the default curve parameters):
+<p float="left">
+  <img src="demo/curves.gif" width="650" height="245" />
+</p>
 [c_ception]: https://github.com/oblitum/Interception
 [pyclick]: https://github.com/patrikoss/pyclick
 [curve]: https://en.wikipedia.org/wiki/B%C3%A9zier_curve
