@@ -26,8 +26,6 @@ And if you're going to ask me how to bypass that detection - write your own driv
 - Supports keys that are extended or require a shift / alt / ctrl modifier to work.
 - Supports 'human' movement by generating configurable [Bezier Curves][curve] - requires [PyClick][pyclick] to be installed.
 
-Feel free to contribute, just make sure you try to stick to the current code style of the project :) 
-
 ## How is it used?
 First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work.
 
