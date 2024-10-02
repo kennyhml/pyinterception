@@ -4,9 +4,9 @@ This is a python **port and wrapper** for [interception][c_ception], a low level
 > The Interception API aims to build a portable programming interface that allows one to intercept and control a range of input devices.
 
 ## Installing
-Pyinterception is available on PyPi under the name `interception-python`, so simply `pip install interception-python`.
+Pyinterception is available on PyPi as `interception-python`, so simply `pip install interception-python`.
 
-## Why use interception?
+## Why use the interception device driver?
 Did you ever try to send inputs to an application and, well, nothing happened? Yes, in alot of cases this is resolved by running your code with higher or same privileges as the target process, but that is not always the case.
 
 Some people are actually under the impression that windows doesnt differentiate between *fake* inputs and *real* inputs, but that is **wrong**!
