@@ -3,6 +3,8 @@ This is a python **port and wrapper** for [interception][c_ception], a low level
 
 > The Interception API aims to build a portable programming interface that allows one to intercept and control a range of input devices.
 
+If your're a C++ Developer, also check out my modern [C++ wrapper][interccption] for the interception c-api!
+
 ## Installing
 Pyinterception is available on PyPi as `interception-python`, so simply `pip install interception-python`.
 
@@ -78,3 +80,4 @@ The resulting mouse movements look something like this (with the default curve p
 [pyclick]: https://github.com/patrikoss/pyclick
 [curve]: https://en.wikipedia.org/wiki/B%C3%A9zier_curve
 [kbdllhook]: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-kbdllhookstruct?redirectedfrom=MSDN
+[interccption]: https://github.com/kennyhml/intercpption
