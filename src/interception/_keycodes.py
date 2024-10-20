@@ -339,6 +339,20 @@ _MAPPING.update(
     }
 )
 
+extended_keys = {
+    0xa5, # VK_RMENU
+    0x2e, # VK_DELETE
+    0x2d, # VK_INSERT
+    0x22, # VK_NEXT
+    0x21, # VK_PRIOR
+    0x24, # VK_HOME
+    0x23, # VK_END
+    0x25, # VK_LEFT
+    0x27, # VK_RIGHT
+    0x26, # VK_UP
+    0x28, # VK_DOWN
+}
+
 SHIFT_FLAG = 1
 ALT_FLAG = 2
 CTRL_FLAG = 4
@@ -375,6 +389,6 @@ def get_key_information(key: str) -> KeyData:
     # code. If there is no translation, the function returns 0.
     scan_code = windll.user32.MapVirtualKeyA(res.vk_code, MAPVK_VK_TO_VSC_EX)
     res.scan_code = scan_code & 0xFF
-    res.is_extended = bool(((scan_code >> 8) & 0xFF) & 0xE0)
+    res.is_extended = bool(((scan_code >> 8) & 0xFF) & 0xE0) or res.vk_code in extended_keys
 
     return res
