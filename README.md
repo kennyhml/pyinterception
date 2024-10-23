@@ -38,8 +38,8 @@ Now you can begin to send inputs, just like you are used to it from pyautogui or
 ```py
 interception.move_to(960, 540)
 
-with interception.hold_key("shift"):
-    interception.press("a")
+with interception.hold_key("ctrl"):
+    interception.press("v")
 
 interception.click(120, 160, button="right", delay=1)
 ```
