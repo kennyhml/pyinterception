@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Optional
 import functools
 from threading import Thread
@@ -88,3 +89,12 @@ def set_win32_mouse_acceleration(enabled: bool):
     SystemParametersInfoA(SPI_GETMOUSE, 0, mouse_params, 0)
     mouse_params[2] = int(enabled)
     SystemParametersInfoA(SPI_SETMOUSE, 0, mouse_params, SPIF_SENDCHANGE)
+
+
+@contextmanager
+def disable_mouse_acceleration():
+    set_win32_mouse_acceleration(False)
+    try:
+        yield
+    finally:
+        set_win32_mouse_acceleration(True)

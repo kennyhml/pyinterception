@@ -7,9 +7,12 @@ try:
 except ImportError:
 
     class HumanCurve:  # type: ignore[no-redef]
+
         def __init__(self, *args, **kwargs) -> None:
             # If pyclick isnt installed this dummy class will be initialized instead,
             # so just use that to throw the exception.
+            self.points: list[tuple[int, int]]
+
             raise exceptions.PyClickNotInstalled
 
 

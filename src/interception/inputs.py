@@ -79,15 +79,23 @@ def move_to(
         return
 
     curve = beziercurve.HumanCurve(mouse_position(), _utils.normalize(x, y))
-    for point in curve.points:
-        # Tempts to use recursion, but recursion stack limit would not allow it.
-        # Iterative solution is harder to read than this imo.
-        x, y = _utils.to_interception_coordinate(*_utils.normalize(point))
-        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
-        _g_context.send(_g_context.mouse, stroke)
 
-        if random.uniform(0, 1) > 0.75:
-            time.sleep(random.uniform(0.005, 0.0010))
+    # Track where we currently are since we need to round the points generated
+    # which will, especially on longer curves, offset us if we dont adjust.
+    curr_x, curr_y = curve[0]
+
+    # Mouse acceleration must be disabled to preserve precision on relative movements
+    with _utils.disable_mouse_acceleration():
+        for point in curve.points:
+            rel_x: int = round(point[0] - curr_x)
+            rel_y: int = round(point[1] - curr_y)
+            curr_x, curr_y = curr_x + rel_x, curr_y + rel_y
+
+            stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, rel_x, rel_y)
+            _g_context.send(_g_context.mouse, stroke)
+
+            if random.uniform(0, 1) > 0.75:
+                time.sleep(random.uniform(0.005, 0.0010))
 
 
 @requires_driver
@@ -107,8 +115,9 @@ def move_relative(x: int = 0, y: int = 0) -> None:
     interception.mouse_position()
     >>> 400, 400
     """
-    stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, x, y)
-    _g_context.send(_g_context.mouse, stroke)
+    with _utils.disable_mouse_acceleration():
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, x, y)
+        _g_context.send(_g_context.mouse, stroke)
 
 
 def mouse_position() -> tuple[int, int]:
@@ -476,7 +485,8 @@ def _listen_to_events(context: Interception, stop_button: str) -> None:
             # in passing the intercepted stroke on.
             # See https://github.com/kennyhml/pyinterception/issues/32#issuecomment-2332565307
             if (isinstance(stroke, KeyStroke) and stroke.flags == KeyFlag.KEY_DOWN) or (
-                isinstance(stroke, MouseStroke) and stroke.flags == MouseButtonFlag.MOUSE_LEFT_BUTTON_DOWN
+                isinstance(stroke, MouseStroke)
+                and stroke.flags == MouseButtonFlag.MOUSE_LEFT_BUTTON_DOWN
             ):
                 print(f"Received stroke {stroke} on device {device}")
             context.send(device, stroke)
