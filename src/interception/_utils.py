@@ -2,6 +2,13 @@ from typing import Optional
 import functools
 from threading import Thread
 import win32api  # type: ignore
+import ctypes
+
+SPI_GETMOUSE = 0x003
+SPI_SETMOUSE = 0x004
+SPIF_SENDCHANGE = 0x002
+
+SystemParametersInfoA = ctypes.windll.user32.SystemParametersInfoA
 
 
 def normalize(x: int | tuple[int, int], y: Optional[int] = None) -> tuple[int, int]:
@@ -71,3 +78,13 @@ def threaded(name: str):
         return inner
 
     return outer
+
+
+def set_win32_mouse_acceleration(enabled: bool):
+
+    # buffer storing the mouse state. The last element is the acceleration
+    mouse_params = (ctypes.c_int * 3)()
+
+    SystemParametersInfoA(SPI_GETMOUSE, 0, mouse_params, 0)
+    mouse_params[2] = int(enabled)
+    SystemParametersInfoA(SPI_SETMOUSE, 0, mouse_params, SPIF_SENDCHANGE)
