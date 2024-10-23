@@ -82,7 +82,7 @@ def move_to(
 
     # Track where we currently are since we need to round the points generated
     # which will, especially on longer curves, offset us if we dont adjust.
-    curr_x, curr_y = curve[0]
+    curr_x, curr_y = curve.points[0]
 
     # Mouse acceleration must be disabled to preserve precision on relative movements
     with _utils.disable_mouse_acceleration():
