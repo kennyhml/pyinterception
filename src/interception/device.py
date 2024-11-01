@@ -97,11 +97,11 @@ class Device:
         """Closes the handles to the device, must be called before destruction
         in order to prevent handle leakage.
         """
-        if self.handle != -1:
+        if getattr(self, "handle", -1) != -1:
             ctypes.windll.kernel32.CloseHandle(self.handle)
             self.handle = -1
 
-        if self.event:
+        if getattr(self, "event", 0):
             ctypes.windll.kernel32.CloseHandle(self.event)
             self.handle = 0
 
