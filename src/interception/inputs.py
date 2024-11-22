@@ -80,22 +80,15 @@ def move_to(
 
     curve = beziercurve.HumanCurve(mouse_position(), _utils.normalize(x, y))
 
-    # Track where we currently are since we need to round the points generated
-    # which will, especially on longer curves, offset us if we dont adjust.
-    curr_x, curr_y = curve.points[0]
+    for x, y in curve.points:
+        x, y = _utils.normalize(x, y)
+        x, y = _utils.to_interception_coordinate(x, y)
 
-    # Mouse acceleration must be disabled to preserve precision on relative movements
-    with _utils.disable_mouse_acceleration():
-        for point in curve.points:
-            rel_x: int = round(point[0] - curr_x)
-            rel_y: int = round(point[1] - curr_y)
-            curr_x, curr_y = curr_x + rel_x, curr_y + rel_y
+        stroke = MouseStroke(MouseFlag.MOUSE_MOVE_ABSOLUTE, 0, 0, x, y)
+        _g_context.send(_g_context.mouse, stroke)
 
-            stroke = MouseStroke(MouseFlag.MOUSE_MOVE_RELATIVE, 0, 0, rel_x, rel_y)
-            _g_context.send(_g_context.mouse, stroke)
-
-            if random.uniform(0, 1) > 0.75:
-                time.sleep(random.uniform(0.005, 0.0010))
+        if random.uniform(0, 1) > 0.75:
+            time.sleep(random.uniform(0.005, 0.0010))
 
 
 @requires_driver
