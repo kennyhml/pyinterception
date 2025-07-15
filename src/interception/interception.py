@@ -43,7 +43,6 @@ class Interception:
             self.get_handles()
         except Exception:
             self.destroy()
-            raise
 
     @property
     def mouse(self) -> int:
