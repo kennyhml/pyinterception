@@ -366,7 +366,6 @@ def capture_keyboard() -> None:
     """
     context = Interception()
     context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_DOWN)
-    context.set_filter(context.is_keyboard, FilterKeyFlag.FILTER_KEY_UP)
     print("Capturing keyboard presses, press ESC to quit.")
 
     _listen_to_events(context, "esc")
