@@ -33,28 +33,10 @@ def to_interception_coordinate(x: int, y: int) -> tuple[int, int]:
 
     The interception coordinate system covers all 16-bit unsigned integers,
     ranging from `0x0` to `0xFFFF (65535)`.
-
-    To arrive at the formula, we first have to realize the following:
-        - The maximum value in the 16-bit system is so `0xFFFF (~65535)`
-        - The maximum value, depending on your monitor, would for example be `1920`
-        - To calculate the factor, we can calculate `65535 / 1920 = ~34.13`.
-        - Thus we found out, that `scaled x = factor * original x` and `factor = 0xFFFF / axis`
-
-    So, to bring it to code:
-    ```py
-    xfactor = 0xFFFF / screen_width
-    yfactor = 0xFFFF / screen_height
-    ```
-
-    Now, using that factor, we can calculate the position of our coordinate as such:
-    ```py
-    interception_x = round(xfactor * x)
-    interception_y = round(yfactor * y)
     """
 
     def scale(metric_index: int, point: int) -> int:
-        scale: float = 0xFFFF / win32api.GetSystemMetrics(metric_index)
-        return round(point * scale)
+        return point * 0xFFFF // win32api.GetSystemMetrics(metric_index) + 1
 
     return scale(0, x), scale(1, y)
 
