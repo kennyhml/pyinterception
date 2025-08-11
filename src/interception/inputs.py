@@ -102,9 +102,6 @@ def move_to(
 def move_relative(x: int = 0, y: int = 0) -> None:
     """Moves relatively from the current cursor position by the given amounts.
 
-    Due to conversion to the coordinate system the interception driver
-    uses, an offset of 1 pixel in either x or y axis may occur or not.
-
     ### Example:
     ```py
     interception.mouse_position()
