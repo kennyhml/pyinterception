@@ -95,7 +95,7 @@ def move_to(
             _g_context.send(_g_context.mouse, stroke)
 
             if random.uniform(0, 1) > 0.75:
-                time.sleep(random.uniform(0.005, 0.0010))
+                time.sleep(random.uniform(0.005, 0.010))
 
 
 @requires_driver
