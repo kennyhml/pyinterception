@@ -14,11 +14,12 @@ Some people are under the impression that windows doesnt differentiate between *
 Take a look at [KBDLLHOOKSTRUCT][kbdllhook], specifically the `flags` field:
 > Testing LLKHF_INJECTED (bit 4) will tell you whether the event was injected. If it was, then testing LLKHF_LOWER_IL_INJECTED (bit 1) will tell you whether or not the event was injected from a process running at lower integrity level.
 
-This flag will **always** be set when sending an input through the windows API and there is nothing you can do about it. Programs may not pick up on this flag through the `KBDLLHOOKSTRUCT`, but it certainly proves that the OS clearly differentiates between inputs. 
+This flag will **always** be set when sending an input through the windows API and there is nothing you can do about it. Programs may not pick up on this flag through the `KBDLLHOOKSTRUCT`, but it certainly proves that the OS marks these inputs and it is something that could always be considered in such an analysis.
 
-If whatever you're sending inputs to currently works fine, and you are not worried about getting flagged by heuristic input detection, then by all means its totally fine to stick to pyautogui / pydirectinput.
-At this point it is worth noting that alot of the more advanced anti-cheats including vanguard and some versions of EAC **will not boot** while the driver is loaded on your system, it is a very well known piece of software after all.
-And if you're going to ask me how to bypass that detection - write your own driver.
+> [!NOTE]
+> Some versions of more advanced anti cheats, including vanguard and some versions of EAC, **will not boot** with the interception driver loaded.
+> You usually won't get banned for having it - you simply wont be able to launch the game. It is a well known piece of software that is not rarely abused.
+> Theres really no way around this except writing your own driver (which comes with it's own set of challenges).
 
 ## Why use this port?
 - Very simple interface inspired by pyautogui / pydirectinput, the low-level communication is abstracted away.
@@ -29,9 +30,9 @@ And if you're going to ask me how to bypass that detection - write your own driv
 - Supports 'human' movement by generating configurable [Bezier Curves][curve] - requires [PyClick][pyclick] to be installed.
 
 ## How is it used?
-First of all, you absolutely need to install the [interception-driver][c_ception], otherwise none of this will work.
+The [interception-driver][c_ception] must be installed on your system, otherwise none of this will work.
 
-The first thing you are always going to want to call is `interception.auto_capture_devices()` in order for the library to get the correct device handles.
+From your code, simply call `interception.auto_capture_devices()` in order for the library to get the correct device handles.
 Explaining why would blow the scope of this introduction and you shouldn't have to worry about, just call the function and let it do it's thing!
 
 Now you can begin to send inputs, just like you are used to it from pyautogui or pydirectinput!
