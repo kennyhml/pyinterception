@@ -91,10 +91,19 @@ def set_win32_mouse_acceleration(enabled: bool):
     SystemParametersInfoA(SPI_SETMOUSE, 0, mouse_params, SPIF_SENDCHANGE)
 
 
+def get_win32_mouse_acceleration() -> bool:
+
+    # buffer storing the mouse state. The last element is the acceleration
+    mouse_params = (ctypes.c_int * 3)()
+    SystemParametersInfoA(SPI_GETMOUSE, 0, mouse_params, 0)
+    return bool(mouse_params[2])
+
+
 @contextmanager
 def disable_mouse_acceleration():
+    original = get_win32_mouse_acceleration()
     set_win32_mouse_acceleration(False)
     try:
         yield
     finally:
-        set_win32_mouse_acceleration(True)
+        set_win32_mouse_acceleration(original)
