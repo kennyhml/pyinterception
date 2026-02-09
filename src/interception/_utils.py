@@ -102,8 +102,10 @@ def get_win32_mouse_acceleration() -> bool:
 @contextmanager
 def disable_mouse_acceleration():
     original = get_win32_mouse_acceleration()
-    set_win32_mouse_acceleration(False)
+    if original:
+        set_win32_mouse_acceleration(False)
     try:
         yield
     finally:
-        set_win32_mouse_acceleration(original)
+        if original:
+            set_win32_mouse_acceleration(original)
